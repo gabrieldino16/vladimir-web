@@ -35,10 +35,10 @@ export function Header() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link
           href="/"
-          className="h-10 text-dorado transition-opacity hover:opacity-80"
+          className="transition-opacity hover:opacity-80"
           aria-label="Inicio"
         >
-          <Logo className="h-full" />
+          <Logo className="h-11" />
         </Link>
 
         <ul className="hidden items-center gap-9 md:flex">

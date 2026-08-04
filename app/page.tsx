@@ -31,12 +31,12 @@ export default async function Inicio() {
           </div>
 
           <div className="aparecer flex flex-col items-center px-5 text-center">
-            <Logo className="h-28 text-dorado sm:h-36" />
+            {/* El isologo ya trae el nombre, así que no se repite como texto.
+                El h1 queda igual para buscadores y lectores de pantalla. */}
+            <Logo className="h-40 sm:h-52" conNombre />
+            <h1 className="sr-only">Vladimir Krauchuk — Fotografía y video</h1>
 
-            <h1 className="titulo dorado mt-8 text-4xl font-light tracking-[0.18em] sm:text-6xl">
-              VLADIMIR KRAUCHUK
-            </h1>
-            <p className="mt-4 text-xs tracking-[0.55em] text-texto-tenue sm:text-sm">
+            <p className="mt-5 text-xs tracking-[0.55em] text-texto-tenue sm:text-sm">
               FOTO &amp; VIDEO
             </p>
 

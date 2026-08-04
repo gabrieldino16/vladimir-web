@@ -54,6 +54,24 @@ body {
   color: transparent;
 }
 
+/* El isologo: la imagen recorta la forma y el degradé le da el color dorado. */
+.marca-dorada {
+  background: linear-gradient(
+    100deg,
+    var(--dorado-oscuro) 0%,
+    var(--dorado-claro) 35%,
+    var(--dorado) 55%,
+    var(--dorado-claro) 80%,
+    var(--dorado-oscuro) 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
 /* Filete dorado fino, para separar bloques. */
 .filete {
   height: 1px;

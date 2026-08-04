@@ -8,8 +8,11 @@ export function Footer() {
     <footer className="border-t border-dorado/15 bg-negro-suave">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-2 md:grid-cols-3">
         <div>
-          <Link href="/" className="inline-block h-12 text-dorado">
-            <Logo className="h-full" conNombre />
+          <Link href="/" className="inline-block">
+            <Logo className="h-20" conNombre />
+            <span className="mt-2 block text-[0.6rem] tracking-[0.42em] text-texto-tenue">
+              FOTO &amp; VIDEO
+            </span>
           </Link>
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-texto-tenue">
             {site.descripcion}
