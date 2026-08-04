@@ -37,14 +37,19 @@ export type Galeria = {
 };
 
 /**
- * Álbumes de SmugMug asociados a cada galería.
- * Completar `albumKey` con la clave de cada álbum cuando estén los links.
+ * Álbumes de SmugMug asociados a cada galería. Una galería puede juntar varios
+ * álbumes: se escriben separados por coma y las fotos se muestran mezcladas.
  */
 export const albumesPorGaleria: Record<string, string | undefined> = {
   "15-anios": process.env.SMUGMUG_ALBUM_15,
   casamientos: process.env.SMUGMUG_ALBUM_CASAMIENTOS,
   "eventos-empresariales": process.env.SMUGMUG_ALBUM_EMPRESAS,
 };
+
+/** "abc, def" -> ["abc", "def"] (tolera espacios y comas de más). */
+function clavesDe(valor?: string): string[] {
+  return (valor ?? "").split(",").map((c) => c.trim()).filter(Boolean);
+}
 
 export const hayApi = () => Boolean(process.env.SMUGMUG_API_KEY);
 
@@ -109,16 +114,34 @@ export async function fotosDelAlbum(albumKey: string, limite = 60): Promise<Foto
  * Fotos de una galería. Si todavía no hay API key o álbum configurado,
  * devuelve una lista vacía para que la página muestre su estado de "próximamente"
  * en lugar de romperse.
+ *
+ * Con varios álbumes las fotos se intercalan (una de cada uno por vuelta), así
+ * la grilla muestra eventos distintos desde el principio y no un álbum entero
+ * seguido del siguiente.
  */
 export async function fotosDeGaleria(slug: string, limite = 60): Promise<Foto[]> {
-  const albumKey = albumesPorGaleria[slug];
-  if (!hayApi() || !albumKey) return [];
-  try {
-    return await fotosDelAlbum(albumKey, limite);
-  } catch (error) {
-    console.error(`No se pudieron traer las fotos de "${slug}":`, error);
-    return [];
+  const claves = clavesDe(albumesPorGaleria[slug]);
+  if (!hayApi() || claves.length === 0) return [];
+
+  const porAlbum = await Promise.all(
+    claves.map(async (clave) => {
+      try {
+        return await fotosDelAlbum(clave, limite);
+      } catch (error) {
+        console.error(`No se pudieron traer las fotos de "${slug}" (${clave}):`, error);
+        return [];
+      }
+    }),
+  );
+
+  const mezcladas: Foto[] = [];
+  const masLargo = Math.max(0, ...porAlbum.map((a) => a.length));
+  for (let i = 0; i < masLargo && mezcladas.length < limite; i++) {
+    for (const album of porAlbum) {
+      if (album[i] && mezcladas.length < limite) mezcladas.push(album[i]);
+    }
   }
+  return mezcladas;
 }
 
 /** Las galerías del sitio, con el nombre lindo de cada tipo de evento. */
