@@ -13,6 +13,7 @@ export function Marco({
   prioridad = false,
   conIcono = true,
   medida = "miniatura",
+  sizes = "(max-width: 768px) 100vw, 33vw",
 }: {
   foto?: Foto;
   etiqueta?: string;
@@ -22,6 +23,12 @@ export function Marco({
   conIcono?: boolean;
   /** En una grilla alcanza la chica; a pantalla completa se ve pixelada. */
   medida?: "miniatura" | "grande";
+  /**
+   * Qué ancho ocupa la imagen en pantalla. Sin este dato Next se guía por las
+   * medidas del original —miles de píxeles— y termina pidiendo una versión
+   * enorme que además agranda la foto de origen y la deja borrosa.
+   */
+  sizes?: string;
 }) {
   if (foto) {
     return (
@@ -31,6 +38,7 @@ export function Marco({
         width={foto.ancho}
         height={foto.alto}
         priority={prioridad}
+        sizes={sizes}
         className={`h-full w-full object-cover ${className}`}
       />
     );

@@ -86,6 +86,7 @@ export function GrillaFotos({ fotos }: { fotos: Foto[] }) {
             width={fotos[abierta].ancho}
             height={fotos[abierta].alto}
             className="max-h-[88vh] w-auto object-contain"
+            sizes="(max-width: 1024px) 100vw, 85vw"
             onClick={(e) => e.stopPropagation()}
             priority
           />

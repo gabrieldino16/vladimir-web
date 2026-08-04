@@ -73,10 +73,31 @@ type ImagenSmugMug = {
 };
 
 /**
- * Arma las URLs de las distintas medidas a partir del nombre de archivo que
- * devuelve SmugMug. El sufijo antes de la extensión define el tamaño servido
- * por su CDN (S, M, L, X2, etc.), así no hace falta un pedido extra por foto.
+ * Medidas que sirve el CDN de SmugMug, con el lado más largo de cada una.
+ * El sufijo antes de la extensión elige cuál se descarga, así no hace falta un
+ * pedido extra por foto.
  */
+const MEDIDAS = [
+  { clave: "M", lado: 450 },
+  { clave: "L", lado: 600 },
+  { clave: "XL", lado: 768 },
+  { clave: "X2", lado: 960 },
+  { clave: "X3", lado: 1200 },
+  { clave: "X4", lado: 2048 },
+  { clave: "X5", lado: 2560 },
+] as const;
+
+/**
+ * La más chica que alcance para mostrarse con nitidez, sin pedir una versión
+ * más grande que la foto original: esas no existen y darían un error.
+ */
+function medidaPara(necesario: number, ladoOriginal: number) {
+  const posibles = MEDIDAS.filter((m) => m.lado <= ladoOriginal);
+  if (posibles.length === 0) return MEDIDAS[0].clave;
+  return (posibles.find((m) => m.lado >= necesario) ?? posibles[posibles.length - 1])
+    .clave;
+}
+
 function urlEnMedida(thumbnailUrl: string, medida: string): string {
   return thumbnailUrl.replace(/\/(Th|S|M|L|XL|X2|X3)\//, `/${medida}/`)
     .replace(/-(Th|S|M|L|XL|X2|X3)\.(jpg|jpeg|png)$/i, `-${medida}.$2`);
@@ -106,14 +127,23 @@ export async function fotosDelAlbum(albumKey: string, limite = 60): Promise<Foto
 
   return imagenes
     .filter((img) => !img.IsVideo && img.ThumbnailUrl)
-    .map((img) => ({
-      id: img.ImageKey,
-      titulo: img.Title || img.Caption || img.FileName || "",
-      miniatura: urlEnMedida(img.ThumbnailUrl!, "M"),
-      grande: urlEnMedida(img.ThumbnailUrl!, "X3"),
-      ancho: img.OriginalWidth ?? 1600,
-      alto: img.OriginalHeight ?? 1067,
-    }));
+    .map((img) => {
+      const ancho = img.OriginalWidth ?? 1600;
+      const alto = img.OriginalHeight ?? 1067;
+      const ladoOriginal = Math.max(ancho, alto);
+      return {
+        id: img.ImageKey,
+        titulo: img.Title || img.Caption || img.FileName || "",
+        // En una grilla cada foto ocupa unos 400 px de ancho; en una pantalla
+        // de alta densidad eso son 800 px reales. Como la medida se mide por el
+        // lado largo, hay que pedir 1200 para que el ancho llegue a 800.
+        miniatura: urlEnMedida(img.ThumbnailUrl!, medidaPara(1200, ladoOriginal)),
+        // El visor y el fondo de la portada ocupan la pantalla entera.
+        grande: urlEnMedida(img.ThumbnailUrl!, medidaPara(2048, ladoOriginal)),
+        ancho,
+        alto,
+      };
+    });
 }
 
 /**
