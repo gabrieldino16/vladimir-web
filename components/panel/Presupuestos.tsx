@@ -1,11 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
-import { generarPresupuesto } from "@/lib/pdf";
+import { generarPresupuesto, PROPORCION_PORTADA } from "@/lib/pdf";
+import {
+  FOCO_POR_DEFECTO,
+  focoSugerido,
+  leerArchivo,
+  recortarParaPortada,
+} from "@/lib/foto-portada";
 import type { Item, Pack } from "@/lib/packs";
 
 type Grupo = { id: Pack["grupo"]; nombre: string; bajada: string };
+
+type FotoSugerida = { id: string; miniatura: string; grande: string };
+
+/**
+ * Tipos de evento del presupuesto. El "slug" es la galería de la que se
+ * proponen fotos para la portada; "Otro" no tiene galería asociada.
+ */
+const OPCIONES_EVENTO = [
+  { nombre: "15 años", slug: "15-anios" },
+  { nombre: "Casamiento", slug: "casamientos" },
+  { nombre: "Evento empresarial", slug: "eventos-empresariales" },
+  { nombre: "Otro", slug: "" },
+] as const;
 
 export function Presupuestos({
   packs,
@@ -28,6 +47,108 @@ export function Presupuestos({
   const [moneda, setMoneda] = useState("USD");
   const [validezDias, setValidezDias] = useState(15);
   const [aviso, setAviso] = useState("");
+
+  // Portada: las fotos sugeridas salen de la galería del tipo de evento, pero
+  // también se puede subir una del evento del cliente.
+  const [sugeridas, setSugeridas] = useState<FotoSugerida[]>([]);
+  // Se guarda la foto entera y el recorte por separado: así mover el encuadre
+  // no obliga a volver a bajarla.
+  const [fotoEntera, setFotoEntera] = useState<string>("");
+  const [foco, setFoco] = useState(FOCO_POR_DEFECTO);
+  const [portada, setPortada] = useState<string>("");
+  const [idPortada, setIdPortada] = useState<string>("");
+  const [cargandoFoto, setCargandoFoto] = useState(false);
+  const archivoRef = useRef<HTMLInputElement>(null);
+
+  // Rehace el recorte cada vez que cambia la foto o el encuadre.
+  useEffect(() => {
+    if (!fotoEntera) {
+      setPortada("");
+      return;
+    }
+    let vigente = true;
+    recortarParaPortada(fotoEntera, PROPORCION_PORTADA, foco)
+      .then((recorte) => {
+        if (vigente) setPortada(recorte);
+      })
+      .catch(() => {
+        if (vigente) setAviso("No se pudo preparar la foto.");
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [fotoEntera, foco]);
+
+  const galeriaDelEvento =
+    OPCIONES_EVENTO.find((o) => o.nombre === tipoEvento)?.slug ?? "";
+
+  useEffect(() => {
+    if (!galeriaDelEvento) {
+      setSugeridas([]);
+      return;
+    }
+    let vigente = true;
+    fetch(`/api/panel/fotos?galeria=${galeriaDelEvento}`)
+      .then((r) => (r.ok ? r.json() : { fotos: [] }))
+      .then((d) => {
+        if (vigente) setSugeridas(d.fotos ?? []);
+      })
+      .catch(() => {
+        if (vigente) setSugeridas([]);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [galeriaDelEvento]);
+
+  async function elegirSugerida(foto: FotoSugerida) {
+    if (idPortada === foto.id) {
+      quitarPortada();
+      return;
+    }
+    setCargandoFoto(true);
+    setAviso("");
+    try {
+      const r = await fetch(
+        `/api/panel/fotos?imagen=${encodeURIComponent(foto.grande)}`,
+      );
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "No se pudo traer la foto.");
+      await usarFoto(d.dataUrl, foto.id);
+    } catch (error) {
+      setAviso(error instanceof Error ? error.message : "No se pudo usar esa foto.");
+    } finally {
+      setCargandoFoto(false);
+    }
+  }
+
+  async function subirFoto(archivo?: File) {
+    if (!archivo) return;
+    setCargandoFoto(true);
+    setAviso("");
+    try {
+      await usarFoto(await leerArchivo(archivo), "propia");
+    } catch (error) {
+      setAviso(error instanceof Error ? error.message : "No se pudo leer la foto.");
+    } finally {
+      setCargandoFoto(false);
+    }
+  }
+
+  /** Deja la foto lista con su encuadre inicial ya calculado. */
+  async function usarFoto(entera: string, id: string) {
+    setFoco(await focoSugerido(entera, PROPORCION_PORTADA));
+    setFotoEntera(entera);
+    setIdPortada(id);
+  }
+
+  function quitarPortada() {
+    setFotoEntera("");
+    setPortada("");
+    setIdPortada("");
+    setFoco(FOCO_POR_DEFECTO);
+    if (archivoRef.current) archivoRef.current.value = "";
+  }
 
   const packElegido = useMemo(
     () => packs.find((p) => p.id === packId),
@@ -70,6 +191,7 @@ export function Presupuestos({
       moneda,
       observaciones,
       validezDias,
+      fotoPortada: portada || undefined,
     });
   }
 
@@ -118,10 +240,9 @@ export function Presupuestos({
                     onChange={(e) => setTipoEvento(e.target.value)}
                     className={entrada}
                   >
-                    <option>15 años</option>
-                    <option>Casamiento</option>
-                    <option>Evento empresarial</option>
-                    <option>Otro</option>
+                    {OPCIONES_EVENTO.map((o) => (
+                      <option key={o.nombre}>{o.nombre}</option>
+                    ))}
                   </select>
                 </Campo>
                 <Campo etiqueta="Fecha del evento">
@@ -240,6 +361,100 @@ export function Presupuestos({
               )}
             </Bloque>
 
+            <Bloque titulo="Foto de portada">
+              <p className="mb-4 text-xs leading-relaxed text-texto-tenue">
+                Abre el presupuesto a página completa. Se puede elegir una de la
+                galería o subir una foto del evento del cliente.
+              </p>
+
+              {portada ? (
+                <div className="mb-4">
+                  {/* Se muestra ya recortada: es exactamente lo que va al PDF. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={portada}
+                    alt="Portada elegida"
+                    className="w-full border border-dorado/40"
+                  />
+                  {/* En una foto vertical entra sólo una franja: este control
+                      elige cuál, para no cortar las caras. */}
+                  <label className="mt-4 block">
+                    <span className="mb-2 block text-xs tracking-[0.2em] text-texto-tenue uppercase">
+                      Encuadre
+                    </span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={Math.round(foco * 100)}
+                      onChange={(e) => setFoco(Number(e.target.value) / 100)}
+                      className="w-full accent-[#c9a24a]"
+                    />
+                    <span className="mt-1 flex justify-between text-[0.65rem] text-texto-tenue">
+                      <span>Arriba de la foto</span>
+                      <span>Abajo</span>
+                    </span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={quitarPortada}
+                    className="mt-3 text-xs tracking-[0.15em] text-texto-tenue uppercase transition-colors hover:text-dorado"
+                  >
+                    Quitar foto
+                  </button>
+                </div>
+              ) : (
+                <p className="mb-4 border border-dashed border-dorado/25 px-4 py-6 text-center text-xs text-texto-tenue">
+                  Sin foto: la portada queda lisa, en negro.
+                </p>
+              )}
+
+              {sugeridas.length > 0 && (
+                <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-6">
+                  {sugeridas.map((foto) => (
+                    <button
+                      key={foto.id}
+                      type="button"
+                      onClick={() => elegirSugerida(foto)}
+                      className={`aspect-square overflow-hidden border transition-colors ${
+                        idPortada === foto.id
+                          ? "border-dorado"
+                          : "border-transparent hover:border-dorado/50"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={foto.miniatura}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => archivoRef.current?.click()}
+                  className="border border-dorado/40 px-5 py-2 text-xs tracking-[0.15em] text-dorado uppercase transition-colors hover:bg-dorado hover:text-negro"
+                >
+                  Subir una foto
+                </button>
+                {cargandoFoto && (
+                  <span className="text-xs text-texto-tenue">Preparando la foto…</span>
+                )}
+                <input
+                  ref={archivoRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => subirFoto(e.target.files?.[0])}
+                  className="hidden"
+                />
+              </div>
+            </Bloque>
+
             <Bloque titulo="Extras">
               <div className="space-y-4">
                 <Campo etiqueta="Moneda">
@@ -267,7 +482,17 @@ export function Presupuestos({
 
           {/* ------------------------------------------------------ vista previa */}
           <aside className="lg:sticky lg:top-8 lg:self-start">
-            <div className="border border-dorado/25 bg-negro-suave p-6">
+            <div className="border border-dorado/25 bg-negro-suave">
+              {/* La vista previa imita la hoja: foto arriba, fundida al negro. */}
+              {portada && (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={portada} alt="" className="w-full" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-negro-suave" />
+                </div>
+              )}
+
+              <div className="p-6">
               <p className="text-xs tracking-[0.25em] text-dorado uppercase">
                 Vista previa
               </p>
@@ -316,6 +541,7 @@ export function Presupuestos({
               >
                 Descargar PDF
               </button>
+              </div>
             </div>
           </aside>
         </div>

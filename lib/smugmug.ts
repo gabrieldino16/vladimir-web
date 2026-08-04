@@ -53,6 +53,12 @@ function clavesDe(valor?: string): string[] {
 
 export const hayApi = () => Boolean(process.env.SMUGMUG_API_KEY);
 
+/**
+ * Una foto apaisada llena un fondo ancho sin recortes feos; una vertical
+ * queda cortada por el medio. Se usa para elegir la portada del inicio.
+ */
+export const esApaisada = (foto: Foto) => foto.ancho > foto.alto;
+
 type ImagenSmugMug = {
   ImageKey: string;
   Title?: string;

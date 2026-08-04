@@ -6,18 +6,25 @@ import { Logo } from "@/components/Logo";
 import { Marco } from "@/components/Marco";
 import { IconoFlecha, IconoInstagram, IconoWhatsapp } from "@/components/Iconos";
 import { site, tiposDeEvento } from "@/lib/site";
-import { fotosDeGaleria } from "@/lib/smugmug";
+import { esApaisada, fotosDeGaleria } from "@/lib/smugmug";
 import { grupos } from "@/lib/packs";
 
 export default async function Inicio() {
-  // Una foto de cada galería para la portada (vacío mientras no haya API key).
-  const destacadas = await Promise.all(
-    tiposDeEvento.map(async (t) => ({
-      ...t,
-      foto: (await fotosDeGaleria(t.slug, 1))[0],
-    })),
+  // Se traen varias de cada galería para poder elegir según la forma de la foto
+  // (vacío mientras no haya API key).
+  const galerias = await Promise.all(
+    tiposDeEvento.map(async (t) => ({ ...t, fotos: await fotosDeGaleria(t.slug, 12) })),
   );
-  const fotoPortada = destacadas.find((d) => d.foto)?.foto;
+
+  // Las tarjetas son verticales: se prefiere una foto vertical para cada una.
+  const destacadas = galerias.map((g) => ({
+    ...g,
+    foto: g.fotos.find((f) => !esApaisada(f)) ?? g.fotos[0],
+  }));
+
+  // El fondo de la portada es ancho: una foto vertical se vería recortada por
+  // el medio, así que sólo se usa una apaisada.
+  const fotoPortada = galerias.flatMap((g) => g.fotos).find(esApaisada);
 
   return (
     <>
@@ -29,7 +36,7 @@ export default async function Inicio() {
           <div className="absolute inset-0 -z-10">
             {/* Cuando haya álbumes conectados, la portada usa la primera foto.
                 Sin fotos queda sólo el fondo, sin ícono de relleno. */}
-            <Marco foto={fotoPortada} conIcono={false} prioridad />
+            <Marco foto={fotoPortada} conIcono={false} medida="grande" prioridad />
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-negro" />
           </div>
 

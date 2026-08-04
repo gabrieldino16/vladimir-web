@@ -1,8 +1,9 @@
 /**
  * Armado del presupuesto en PDF (se genera en el navegador, sin servidor).
  *
- * Mantiene la identidad de la marca: encabezado negro, filetes dorados y la
- * tipografía serif del logo.
+ * Sigue la identidad de la web: fondo negro, filetes dorados y tipografía serif.
+ * La primera hoja abre con una foto a sangre que se funde con el negro, igual
+ * que la portada del sitio.
  */
 import { jsPDF } from "jspdf";
 import type { Item } from "./packs";
@@ -17,176 +18,312 @@ export type DatosPresupuesto = {
   moneda: string;
   observaciones?: string;
   validezDias: number;
+  /** Foto de portada ya recortada, como "data URL". Sin ella la portada es lisa. */
+  fotoPortada?: string;
 };
 
-const NEGRO: [number, number, number] = [10, 10, 10];
-const DORADO: [number, number, number] = [201, 162, 74];
-const GRIS: [number, number, number] = [110, 110, 110];
-const TEXTO: [number, number, number] = [35, 35, 35];
+type Color = [number, number, number];
+
+// Los mismos valores que las variables de globals.css.
+const NEGRO: Color = [10, 10, 10];
+const NEGRO_SUAVE: Color = [18, 18, 18];
+const DORADO: Color = [201, 162, 74];
+const DORADO_CLARO: Color = [237, 218, 164];
+const TEXTO: Color = [242, 242, 242];
+const TENUE: Color = [168, 168, 168];
+
+const MARGEN = 18;
+/**
+ * Alto de la foto de portada y proporción que se le pide al recorte.
+ * Cuanto más apaisada, menos entra de una foto vertical: 118 mm es el punto
+ * donde la portada sigue siendo una franja y no descarta media foto.
+ */
+const ALTO_PORTADA = 108;
+
+/** Lo que ocupa el bloque del total: se reserva para que no quede huérfano. */
+const ALTO_TOTAL = 25;
+export const PROPORCION_PORTADA = 210 / ALTO_PORTADA;
 
 export function generarPresupuesto(datos: DatosPresupuesto) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const ancho = doc.internal.pageSize.getWidth();
   const alto = doc.internal.pageSize.getHeight();
-  const margen = 18;
-  let y = 0;
 
-  // ---------------------------------------------------------------- encabezado
-  doc.setFillColor(...NEGRO);
-  doc.rect(0, 0, ancho, 46, "F");
+  fondoNegro(doc, ancho, alto);
 
-  doc.setTextColor(...DORADO);
+  let y: number;
+
+  // ---------------------------------------------------------------- portada
+  if (datos.fotoPortada) {
+    doc.addImage(datos.fotoPortada, "JPEG", 0, 0, ancho, ALTO_PORTADA);
+    // La foto se apaga hacia abajo hasta fundirse con el fondo, así el texto
+    // que sigue se lee sin cortar la imagen con una línea dura.
+    degradado(doc, ancho, ALTO_PORTADA * 0.34, ALTO_PORTADA * 0.66 + 1, "abajo");
+    // Y se oscurece arriba, parejo, para que el nombre y la fecha se lean
+    // aunque la foto tenga un vestido claro o un flash justo detrás.
+    degradado(doc, ancho, 0, 58, "arriba", 0.88, 1);
+    y = ALTO_PORTADA + 12;
+  } else {
+    y = 54;
+  }
+
+  // ------------------------------------------------------------------ marca
   doc.setFont("times", "normal");
-  doc.setFontSize(22);
-  doc.text("VLADIMIR KRAUCHUK", margen, 24);
+  doc.setFontSize(21);
+  doc.setTextColor(...DORADO_CLARO);
+  doc.text("VLADIMIR KRAUCHUK", MARGEN, 22);
 
-  doc.setFontSize(8);
-  doc.setTextColor(190, 190, 190);
-  doc.text("F O T O   &   V I D E O", margen, 31);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  // Sobre la foto conviene el gris claro; sin foto, el tenue de siempre.
+  doc.setTextColor(...(datos.fotoPortada ? TEXTO : TENUE));
+  doc.text("F O T O   &   V I D E O", MARGEN, 28.5);
 
-  doc.setFontSize(9);
-  doc.setTextColor(...DORADO);
-  doc.text("PRESUPUESTO", ancho - margen, 24, { align: "right" });
-  doc.setTextColor(190, 190, 190);
-  doc.setFontSize(8);
-  doc.text(
-    new Date().toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }),
-    ancho - margen,
-    31,
-    { align: "right" },
-  );
-
-  y = 62;
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DORADO_CLARO);
+  doc.text("PRESUPUESTO", ancho - MARGEN, 22, { align: "right" });
+  doc.setTextColor(...(datos.fotoPortada ? TEXTO : TENUE));
+  doc.text(fechaDeHoy(), ancho - MARGEN, 28.5, { align: "right" });
 
   // ------------------------------------------------------------ datos cliente
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...GRIS);
-  doc.text("CLIENTE", margen, y);
-
-  doc.setFontSize(14);
-  doc.setTextColor(...TEXTO);
-  doc.setFont("times", "normal");
-  doc.text(datos.cliente || "—", margen, y + 7);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...GRIS);
+  doc.setFontSize(7.5);
+  doc.setTextColor(...DORADO);
+  doc.text("CLIENTE", MARGEN, y);
   doc.text("EVENTO", ancho / 2, y);
-  doc.text("FECHA", ancho - margen, y, { align: "right" });
+  doc.text("FECHA", ancho - MARGEN, y, { align: "right" });
 
-  doc.setFontSize(11);
+  y += 8;
+  doc.setFont("times", "normal");
+  doc.setFontSize(15);
   doc.setTextColor(...TEXTO);
-  doc.text(datos.tipoEvento || "—", ancho / 2, y + 7);
-  doc.text(formatearFecha(datos.fechaEvento), ancho - margen, y + 7, {
+  doc.text(datos.cliente || "—", MARGEN, y);
+  doc.setFontSize(12);
+  doc.text(datos.tipoEvento || "—", ancho / 2, y);
+  doc.text(formatearFecha(datos.fechaEvento), ancho - MARGEN, y, {
     align: "right",
   });
 
-  y += 18;
-  doc.setDrawColor(...DORADO);
-  doc.setLineWidth(0.4);
-  doc.line(margen, y, ancho - margen, y);
-  y += 14;
+  y += 8;
+  linea(doc, MARGEN, y, ancho - MARGEN, DORADO, 0.4);
+  y += 12;
 
   // ------------------------------------------------------------------- pack
   doc.setFont("times", "normal");
-  doc.setFontSize(17);
-  doc.setTextColor(...TEXTO);
-  doc.text(datos.nombrePack, margen, y);
+  doc.setFontSize(18);
+  doc.setTextColor(...DORADO_CLARO);
+  doc.text(datos.nombrePack, MARGEN, y);
   y += 10;
 
+  // El cierre (total, observaciones y validez) se mide antes de acomodar los
+  // ítems, para poder reservarle lugar y que no termine solo en otra hoja.
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  const notas = datos.observaciones?.trim()
+    ? doc.splitTextToSize(datos.observaciones.trim(), ancho - MARGEN * 2)
+    : [];
+  const altoCierre = ALTO_TOTAL + notas.length * 4 + 11;
+
   // ------------------------------------------------------------------ items
-  doc.setFontSize(9);
-  for (const item of datos.items) {
-    // Salto de página si no entra el bloque completo.
-    if (y > alto - 60) {
+  const limite = alto - 26;
+  datos.items.forEach((item, indice) => {
+    const lineas = doc.splitTextToSize(item.detalle, ancho - MARGEN * 2 - 12);
+    const altoBloque = 10.5 + lineas.length * 4.2;
+
+    // Al último ítem se le suma el cierre: si no entran los dos, pasan juntos a
+    // la hoja siguiente. Si no, el total quedaría solo arriba de una hoja vacía.
+    const necesita =
+      altoBloque + (indice === datos.items.length - 1 ? altoCierre : 0);
+
+    if (y + necesita > limite) {
       doc.addPage();
+      fondoNegro(doc, ancho, alto);
       y = 28;
     }
 
+    // Recuadro apenas más claro que el fondo, como las tarjetas de la web.
+    doc.setFillColor(...NEGRO_SUAVE);
+    doc.rect(MARGEN, y - 6, ancho - MARGEN * 2, altoBloque, "F");
+    // Filete dorado al costado, para dar el acento sin recuadrar todo.
     doc.setFillColor(...DORADO);
-    doc.circle(margen + 1.4, y - 1.4, 1.1, "F");
+    doc.rect(MARGEN, y - 6, 0.8, altoBloque, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.5);
+    doc.setFontSize(9);
     doc.setTextColor(...TEXTO);
-    doc.text(item.titulo.toUpperCase(), margen + 6, y);
-    y += 5;
+    doc.text(item.titulo.toUpperCase(), MARGEN + 7, y);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    doc.setTextColor(...GRIS);
-    const lineas = doc.splitTextToSize(item.detalle, ancho - margen * 2 - 6);
-    doc.text(lineas, margen + 6, y);
-    y += lineas.length * 4 + 6;
-  }
+    doc.setTextColor(...TENUE);
+    doc.text(lineas, MARGEN + 7, y + 5.5);
+
+    y += altoBloque + 3.5;
+  });
 
   // ------------------------------------------------------------------ total
-  if (y > alto - 55) {
+  if (y + altoCierre > limite) {
     doc.addPage();
+    fondoNegro(doc, ancho, alto);
     y = 28;
   }
-  y += 4;
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.2);
-  doc.line(margen, y, ancho - margen, y);
-  y += 12;
+  y += 5;
 
-  doc.setFillColor(...NEGRO);
-  doc.rect(margen, y - 8, ancho - margen * 2, 18, "F");
+  // Bloque dorado lleno: es lo único invertido de la hoja, para que el precio
+  // sea lo primero que se ve.
+  doc.setFillColor(...DORADO);
+  doc.rect(MARGEN, y, ancho - MARGEN * 2, 20, "F");
+
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(190, 190, 190);
-  doc.text("TOTAL", margen + 6, y + 3);
+  doc.setFontSize(8);
+  doc.setTextColor(...NEGRO);
+  doc.text("TOTAL", MARGEN + 7, y + 12);
 
   doc.setFont("times", "normal");
-  doc.setFontSize(18);
-  doc.setTextColor(...DORADO);
+  doc.setFontSize(19);
   doc.text(
     `${datos.moneda} ${datos.precio.toLocaleString("es-AR")}`,
-    ancho - margen - 6,
-    y + 4,
+    ancho - MARGEN - 7,
+    y + 13,
     { align: "right" },
   );
-  y += 22;
+  y += 30;
 
   // ---------------------------------------------------------- observaciones
-  if (datos.observaciones?.trim()) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(...GRIS);
-    const lineas = doc.splitTextToSize(
-      datos.observaciones.trim(),
-      ancho - margen * 2,
-    );
-    doc.text(lineas, margen, y);
-    y += lineas.length * 4 + 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...TENUE);
+
+  if (notas.length > 0) {
+    doc.text(notas, MARGEN, y);
+    y += notas.length * 4 + 5;
   }
 
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(...GRIS);
+  doc.setTextColor(...TENUE);
   doc.text(
     `Presupuesto válido por ${datos.validezDias} días desde la fecha de emisión.`,
-    margen,
+    MARGEN,
     y,
   );
 
-  // -------------------------------------------------------------------- pie
-  doc.setFillColor(...NEGRO);
-  doc.rect(0, alto - 20, ancho, 20, "F");
-  doc.setFontSize(8);
-  doc.setTextColor(...DORADO);
-  doc.text("@vladimirkrau.ph", margen, alto - 8);
-  doc.setTextColor(190, 190, 190);
-  doc.text("+54 9 341 578-3412", ancho - margen, alto - 8, { align: "right" });
+  // ------------------------------------------------- pie (en todas las hojas)
+  const hojas = doc.getNumberOfPages();
+  for (let hoja = 1; hoja <= hojas; hoja++) {
+    doc.setPage(hoja);
+    linea(doc, MARGEN, alto - 16, ancho - MARGEN, DORADO, 0.3, 0.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...DORADO);
+    doc.text("@vladimirkrau.ph", MARGEN, alto - 10);
+
+    doc.setTextColor(...TENUE);
+    doc.text("+54 9 341 578-3412", ancho / 2, alto - 10, { align: "center" });
+    doc.text(
+      hojas > 1 ? `${hoja} / ${hojas}` : "Rosario, Santa Fe",
+      ancho - MARGEN,
+      alto - 10,
+      { align: "right" },
+    );
+  }
 
   const nombreArchivo = `Presupuesto - ${datos.cliente || "cliente"}.pdf`;
   doc.save(nombreArchivo);
   return nombreArchivo;
+}
+
+/** Pinta la hoja entera de negro: es el fondo de todo el documento. */
+function fondoNegro(doc: jsPDF, ancho: number, alto: number) {
+  doc.setFillColor(...NEGRO);
+  doc.rect(0, 0, ancho, alto, "F");
+}
+
+/**
+ * Degradado de transparente a negro. El PDF no tiene degradados propios, así
+ * que se imita apilando rectángulos negros muy tenues.
+ *
+ * La clave es que cada uno llegue hasta el extremo oscuro en vez de ser una
+ * franja suelta: así las opacidades se van sumando solas y no quedan las líneas
+ * que se ven cuando dos franjas comparten un borde.
+ */
+function degradado(
+  doc: jsPDF,
+  ancho: number,
+  desde: number,
+  altura: number,
+  /** Hacia dónde oscurece. */
+  direccion: "arriba" | "abajo",
+  /** Opacidad máxima, en el extremo oscuro. */
+  tope = 1,
+  /**
+   * Qué tan tarde empieza a oscurecer. 2 deja la foto limpia un buen tramo y
+   * cierra sobre el final; 1 reparte parejo, que es lo que sirve para que un
+   * texto se lea desde el arranque.
+   */
+  curva = 2,
+) {
+  const capas = 40;
+  const paso = altura / capas;
+  const maximo = Math.min(tope, 0.999);
+
+  const acumulada = (n: number) => maximo * Math.pow(n / capas, curva);
+
+  doc.saveGraphicsState();
+  doc.setFillColor(...NEGRO);
+
+  const GStateDePdf = (doc as unknown as { GState: new (o: object) => object })
+    .GState;
+
+  for (let i = 0; i < capas; i++) {
+    // Cuánto tiene que aportar esta capa para que el apilado dé la curva.
+    const previa = acumulada(i);
+    const objetivo = acumulada(i + 1);
+    const opacidad = 1 - (1 - objetivo) / (1 - previa);
+    if (opacidad <= 0) continue;
+
+    doc.setGState(new GStateDePdf({ opacity: opacidad }));
+    const recorte = i * paso;
+    if (direccion === "abajo") {
+      doc.rect(0, desde + recorte, ancho, altura - recorte, "F");
+    } else {
+      doc.rect(0, desde, ancho, altura - recorte, "F");
+    }
+  }
+
+  doc.restoreGraphicsState();
+}
+
+function linea(
+  doc: jsPDF,
+  x1: number,
+  y: number,
+  x2: number,
+  color: Color,
+  grosor: number,
+  opacidad = 1,
+) {
+  doc.saveGraphicsState();
+  if (opacidad < 1) {
+    doc.setGState(
+      new (doc as unknown as { GState: new (o: object) => object }).GState({
+        opacity: opacidad,
+      }),
+    );
+  }
+  doc.setDrawColor(...color);
+  doc.setLineWidth(grosor);
+  doc.line(x1, y, x2, y);
+  doc.restoreGraphicsState();
+}
+
+function fechaDeHoy() {
+  return new Date().toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function formatearFecha(fecha: string) {

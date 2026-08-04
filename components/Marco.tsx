@@ -12,6 +12,7 @@ export function Marco({
   className = "",
   prioridad = false,
   conIcono = true,
+  medida = "miniatura",
 }: {
   foto?: Foto;
   etiqueta?: string;
@@ -19,11 +20,13 @@ export function Marco({
   prioridad?: boolean;
   /** false deja sólo el fondo, sin el ícono de relleno (para la portada). */
   conIcono?: boolean;
+  /** En una grilla alcanza la chica; a pantalla completa se ve pixelada. */
+  medida?: "miniatura" | "grande";
 }) {
   if (foto) {
     return (
       <Image
-        src={foto.miniatura}
+        src={foto[medida]}
         alt={foto.titulo || etiqueta || "Fotografía"}
         width={foto.ancho}
         height={foto.alto}
