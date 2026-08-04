@@ -11,11 +11,14 @@ export function Marco({
   etiqueta,
   className = "",
   prioridad = false,
+  conIcono = true,
 }: {
   foto?: Foto;
   etiqueta?: string;
   className?: string;
   prioridad?: boolean;
+  /** false deja sólo el fondo, sin el ícono de relleno (para la portada). */
+  conIcono?: boolean;
 }) {
   if (foto) {
     return (
@@ -34,6 +37,7 @@ export function Marco({
     <div
       className={`flex h-full w-full items-center justify-center bg-gradient-to-br from-carbon via-negro-suave to-black ${className}`}
     >
+      {conIcono && (
       <div className="flex flex-col items-center gap-3 px-4 text-center">
         <svg
           viewBox="0 0 24 24"
@@ -51,6 +55,7 @@ export function Marco({
           </span>
         )}
       </div>
+      )}
     </div>
   );
 }

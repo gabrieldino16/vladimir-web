@@ -17,6 +17,7 @@ export default async function Inicio() {
       foto: (await fotosDeGaleria(t.slug, 1))[0],
     })),
   );
+  const fotoPortada = destacadas.find((d) => d.foto)?.foto;
 
   return (
     <>
@@ -26,7 +27,9 @@ export default async function Inicio() {
         {/* ---------------------------------------------------------- portada */}
         <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
           <div className="absolute inset-0 -z-10">
-            <Marco prioridad />
+            {/* Cuando haya álbumes conectados, la portada usa la primera foto.
+                Sin fotos queda sólo el fondo, sin ícono de relleno. */}
+            <Marco foto={fotoPortada} conIcono={false} prioridad />
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-negro" />
           </div>
 
