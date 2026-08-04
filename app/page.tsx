@@ -1,69 +1,169 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { Encabezado } from "@/components/Encabezado";
+import { Logo } from "@/components/Logo";
+import { Marco } from "@/components/Marco";
+import { IconoFlecha, IconoInstagram, IconoWhatsapp } from "@/components/Iconos";
+import { site, tiposDeEvento } from "@/lib/site";
+import { fotosDeGaleria } from "@/lib/smugmug";
+import { grupos } from "@/lib/packs";
 
-export default function Home() {
+export default async function Inicio() {
+  // Una foto de cada galería para la portada (vacío mientras no haya API key).
+  const destacadas = await Promise.all(
+    tiposDeEvento.map(async (t) => ({
+      ...t,
+      foto: (await fotosDeGaleria(t.slug, 1))[0],
+    })),
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <>
+      <Header />
+
+      <main className="flex-1">
+        {/* ---------------------------------------------------------- portada */}
+        <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 -z-10">
+            <Marco prioridad />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-negro" />
+          </div>
+
+          <div className="aparecer flex flex-col items-center px-5 text-center">
+            <Logo className="h-28 text-dorado sm:h-36" />
+
+            <h1 className="titulo dorado mt-8 text-4xl font-light tracking-[0.18em] sm:text-6xl">
+              VLADIMIR KRAUCHUK
+            </h1>
+            <p className="mt-4 text-xs tracking-[0.55em] text-texto-tenue sm:text-sm">
+              FOTO &amp; VIDEO
+            </p>
+
+            <div className="filete my-9 w-56" />
+
+            <p className="max-w-xl text-base leading-relaxed text-texto-tenue sm:text-lg">
+              Momentos que no se repiten, contados con imágenes que emocionan.
+              15 años, casamientos y eventos empresariales.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              <Link
+                href="/galerias"
+                className="group inline-flex items-center justify-center gap-2 border border-dorado px-9 py-3.5 text-sm tracking-[0.2em] text-dorado uppercase transition-colors hover:bg-dorado hover:text-negro"
+              >
+                Ver galerías
+                <IconoFlecha className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <a
+                href={site.contacto.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 bg-dorado px-9 py-3.5 text-sm tracking-[0.2em] text-negro uppercase transition-opacity hover:opacity-90"
+              >
+                <IconoWhatsapp className="h-4 w-4" />
+                Consultar fecha
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------------------------------------- galerías */}
+        <section className="mx-auto max-w-6xl px-5 py-24">
+          <Encabezado
+            volanta="Portfolio"
+            titulo="Cada evento, su historia"
+            bajada="Una selección de trabajos recientes."
+          />
+
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {destacadas.map((g) => (
+              <Link
+                key={g.slug}
+                href={`/galerias/${g.slug}`}
+                className="group relative aspect-[3/4] overflow-hidden border border-dorado/15"
+              >
+                <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                  <Marco foto={g.foto} etiqueta={g.nombre} />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-6">
+                  <h3 className="titulo text-2xl text-texto">{g.nombre}</h3>
+                  <span className="mt-2 inline-flex items-center gap-2 text-xs tracking-[0.22em] text-dorado uppercase">
+                    Ver galería
+                    <IconoFlecha className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* --------------------------------------------------------- servicios */}
+        <section className="border-y border-dorado/15 bg-negro-suave">
+          <div className="mx-auto max-w-6xl px-5 py-24">
+            <Encabezado
+              volanta="Servicios"
+              titulo="Packs a medida de tu evento"
+              bajada="Desde la cobertura fotográfica hasta la producción audiovisual completa."
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+            <div className="mt-14 grid gap-6 sm:grid-cols-2">
+              {grupos.map((g) => (
+                <div
+                  key={g.id}
+                  className="border border-dorado/20 bg-negro p-9 transition-colors hover:border-dorado/50"
+                >
+                  <h3 className="titulo dorado text-3xl">{g.nombre}</h3>
+                  <p className="mt-4 leading-relaxed text-texto-tenue">{g.bajada}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link
+                href="/packs"
+                className="group inline-flex items-center gap-2 border border-dorado px-9 py-3.5 text-sm tracking-[0.2em] text-dorado uppercase transition-colors hover:bg-dorado hover:text-negro"
+              >
+                Ver todos los servicios
+                <IconoFlecha className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------- contacto */}
+        <section className="mx-auto max-w-3xl px-5 py-24 text-center">
+          <Encabezado
+            volanta="Contacto"
+            titulo="¿Tenés fecha?"
+            bajada="Contame de tu evento y armamos juntos la cobertura ideal."
+          />
+
+          <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
+            <a
+              href={site.contacto.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 bg-dorado px-9 py-3.5 text-sm tracking-[0.2em] text-negro uppercase transition-opacity hover:opacity-90"
+            >
+              <IconoWhatsapp className="h-4 w-4" />
+              WhatsApp
+            </a>
+            <a
+              href={site.contacto.instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 border border-dorado px-9 py-3.5 text-sm tracking-[0.2em] text-dorado uppercase transition-colors hover:bg-dorado hover:text-negro"
+            >
+              <IconoInstagram className="h-4 w-4" />
+              Instagram
+            </a>
+          </div>
+        </section>
       </main>
-    </div>
+
+      <Footer />
+    </>
   );
 }

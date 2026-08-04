@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------- identidad
+   Paleta tomada de la tarjeta personal: negro profundo y dorado.
+   El dorado se usa en degradé para imitar el efecto metálico del impreso.
+--------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --negro: #0a0a0a;
+  --negro-suave: #121212;
+  --carbon: #1b1b1b;
+  --dorado: #c9a24a;
+  --dorado-claro: #eddaa4;
+  --dorado-oscuro: #8c6d2a;
+  --texto: #f2f2f2;
+  --texto-tenue: #a8a8a8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-negro: var(--negro);
+  --color-negro-suave: var(--negro-suave);
+  --color-carbon: var(--carbon);
+  --color-dorado: var(--dorado);
+  --color-dorado-claro: var(--dorado-claro);
+  --color-dorado-oscuro: var(--dorado-oscuro);
+  --color-texto: var(--texto);
+  --color-texto-tenue: var(--texto-tenue);
+  --font-titulo: var(--font-titulo);
+  --font-cuerpo: var(--font-cuerpo);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--negro);
+  color: var(--texto);
+  font-family: var(--font-cuerpo), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Texto con acabado dorado metálico, como el relieve de la tarjeta. */
+.dorado {
+  background: linear-gradient(
+    100deg,
+    var(--dorado-oscuro) 0%,
+    var(--dorado-claro) 35%,
+    var(--dorado) 55%,
+    var(--dorado-claro) 80%,
+    var(--dorado-oscuro) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Filete dorado fino, para separar bloques. */
+.filete {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--dorado) 50%, transparent);
+}
+
+/* Encabezados con la serif elegante de la marca. */
+.titulo {
+  font-family: var(--font-titulo), Georgia, serif;
+  letter-spacing: 0.01em;
+}
+
+/* Aparición suave (sin librerías). */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.aparecer {
+  animation: aparecer 0.8s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aparecer {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+::selection {
+  background: var(--dorado);
+  color: var(--negro);
 }
