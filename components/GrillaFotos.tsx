@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Foto } from "@/lib/smugmug";
 
 /**
@@ -10,6 +10,52 @@ import type { Foto } from "@/lib/smugmug";
  */
 export function GrillaFotos({ fotos }: { fotos: Foto[] }) {
   const [abierta, setAbierta] = useState<number | null>(null);
+
+  // Cuantas columnas entran. Hace falta saberlo acá y no sólo en el CSS,
+  // porque el reparto de las fotos depende de la cantidad.
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const anchoSuficiente = window.matchMedia("(min-width: 768px)");
+    const aplicar = () => setColumnas(anchoSuficiente.matches ? 3 : 2);
+    aplicar();
+    anchoSuficiente.addEventListener("change", aplicar);
+    return () => anchoSuficiente.removeEventListener("change", aplicar);
+  }, []);
+
+  /**
+   * Reparte las fotos en columnas siguiendo el orden del álbum: cada una va a
+   * la columna que quedó más corta hasta ese momento.
+   *
+   * Así las filas quedan casi alineadas —la 1, 2 y 3 arriba— sin los huecos
+   * que deja una grilla pareja, porque cada columna se rellena sola. Para
+   * medir el alto alcanza con la proporción de cada foto: todas las columnas
+   * tienen el mismo ancho.
+   */
+  const repartidas = useMemo(() => {
+    const columnasDeFotos: { foto: Foto; indice: number }[][] = Array.from(
+      { length: columnas },
+      () => [],
+    );
+    const alto = new Array(columnas).fill(0);
+
+    // Dos columnas casi iguales cuentan como empatadas, y un empate lo gana la
+    // de más a la izquierda, que es la que sigue en el orden de lectura. Sin
+    // esta holgura, dos fotos de la misma proporción pero distinto tamaño
+    // (3521x5282 da 1,50014 y 2500x1667 da 1,49970) se leen como columnas de
+    // alto distinto y la foto se va a la derecha, salteándose el orden.
+    const HOLGURA = 0.02; // ~2% del alto de una foto
+
+    fotos.forEach((foto, indice) => {
+      const masCorta = Math.min(...alto);
+      const elegida = alto.findIndex((h) => h <= masCorta + HOLGURA);
+
+      columnasDeFotos[elegida].push({ foto, indice });
+      alto[elegida] += foto.alto / foto.ancho;
+    });
+
+    return columnasDeFotos;
+  }, [fotos, columnas]);
 
   const mover = useCallback(
     (paso: number) =>
@@ -37,45 +83,47 @@ export function GrillaFotos({ fotos }: { fotos: Foto[] }) {
 
   return (
     <>
-      {/* Grilla y no columnas CSS: las columnas se llenan hacia abajo, asi que
-          la segunda foto caia debajo de la primera en vez de al lado. Muchas
-          galerias son secuencias de una misma sesion y hay que poder leerlas
-          de izquierda a derecha.
+      {/* Las columnas se arman acá y no con columns-2 de CSS: ese modo llena
+          cada columna de arriba abajo, así que la segunda foto caía debajo de
+          la primera en vez de al lado y se perdía el orden del álbum. */}
+      <div
+        className="grid gap-4"
+        style={{ gridTemplateColumns: `repeat(${columnas}, minmax(0, 1fr))` }}
+      >
+        {repartidas.map((columna, numero) => (
+          <div key={numero} className="flex flex-col gap-4">
+            {columna.map(({ foto, indice }) => (
+              <button
+                key={foto.id}
+                type="button"
+                onClick={() => setAbierta(indice)}
+                className="group relative block w-full overflow-hidden border border-transparent transition-colors hover:border-dorado/40"
+                aria-label={`Ampliar ${foto.titulo || `foto ${indice + 1}`}`}
+              >
+                <Image
+                  src={foto.miniatura}
+                  alt={foto.titulo || `Fotografía ${indice + 1}`}
+                  width={foto.ancho}
+                  height={foto.alto}
+                  className="w-full transition-transform duration-700 group-hover:scale-[1.04]"
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                />
+                <span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
 
-          Con items-start cada foto conserva su proporcion en vez de estirarse
-          hasta el alto de la fila: quedan escalones debajo de las mas bajas,
-          pero ninguna se recorta. */}
-      <div className="grid grid-cols-2 items-start gap-4 md:grid-cols-3">
-        {fotos.map((foto, i) => (
-          <button
-            key={foto.id}
-            type="button"
-            onClick={() => setAbierta(i)}
-            className="group relative block w-full overflow-hidden border border-transparent transition-colors hover:border-dorado/40"
-            aria-label={`Ampliar ${foto.titulo || `foto ${i + 1}`}`}
-          >
-            <Image
-              src={foto.miniatura}
-              alt={foto.titulo || `Fotografía ${i + 1}`}
-              width={foto.ancho}
-              height={foto.alto}
-              className="w-full transition-transform duration-700 group-hover:scale-[1.04]"
-              sizes="(max-width: 768px) 50vw, 33vw"
-            />
-            <span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
-
-            {/* En los videos se muestra la portada del video y se avisa que
-                se puede reproducir. */}
-            {foto.video && (
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-dorado/80 bg-black/50 backdrop-blur transition-transform group-hover:scale-110">
-                  <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6 fill-dorado">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </span>
-              </span>
-            )}
-          </button>
+                {/* En los videos se muestra la portada del video y se avisa que
+                    se puede reproducir. */}
+                {foto.video && (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-full border border-dorado/80 bg-black/50 backdrop-blur transition-transform group-hover:scale-110">
+                      <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6 fill-dorado">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </span>
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         ))}
       </div>
 
