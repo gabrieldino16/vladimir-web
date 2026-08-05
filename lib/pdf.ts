@@ -55,13 +55,9 @@ export function generarPresupuesto(datos: DatosPresupuesto) {
 
   // ---------------------------------------------------------------- portada
   if (datos.fotoPortada) {
+    // La foto ya viene con el degradado adentro (ver `foto-portada.ts`): se
+    // funde con el negro de la hoja sin dibujar nada encima.
     doc.addImage(datos.fotoPortada, "JPEG", 0, 0, ancho, ALTO_PORTADA);
-    // La foto se apaga hacia abajo hasta fundirse con el fondo, así el texto
-    // que sigue se lee sin cortar la imagen con una línea dura.
-    degradado(doc, ancho, ALTO_PORTADA * 0.34, ALTO_PORTADA * 0.66 + 1, "abajo");
-    // Y se oscurece arriba, parejo, para que el nombre y la fecha se lean
-    // aunque la foto tenga un vestido claro o un flash justo detrás.
-    degradado(doc, ancho, 0, 58, "arriba", 0.88, 1);
     y = ALTO_PORTADA + 12;
   } else {
     y = 54;
@@ -238,61 +234,6 @@ export function generarPresupuesto(datos: DatosPresupuesto) {
 function fondoNegro(doc: jsPDF, ancho: number, alto: number) {
   doc.setFillColor(...NEGRO);
   doc.rect(0, 0, ancho, alto, "F");
-}
-
-/**
- * Degradado de transparente a negro. El PDF no tiene degradados propios, así
- * que se imita apilando rectángulos negros muy tenues.
- *
- * La clave es que cada uno llegue hasta el extremo oscuro en vez de ser una
- * franja suelta: así las opacidades se van sumando solas y no quedan las líneas
- * que se ven cuando dos franjas comparten un borde.
- */
-function degradado(
-  doc: jsPDF,
-  ancho: number,
-  desde: number,
-  altura: number,
-  /** Hacia dónde oscurece. */
-  direccion: "arriba" | "abajo",
-  /** Opacidad máxima, en el extremo oscuro. */
-  tope = 1,
-  /**
-   * Qué tan tarde empieza a oscurecer. 2 deja la foto limpia un buen tramo y
-   * cierra sobre el final; 1 reparte parejo, que es lo que sirve para que un
-   * texto se lea desde el arranque.
-   */
-  curva = 2,
-) {
-  const capas = 40;
-  const paso = altura / capas;
-  const maximo = Math.min(tope, 0.999);
-
-  const acumulada = (n: number) => maximo * Math.pow(n / capas, curva);
-
-  doc.saveGraphicsState();
-  doc.setFillColor(...NEGRO);
-
-  const GStateDePdf = (doc as unknown as { GState: new (o: object) => object })
-    .GState;
-
-  for (let i = 0; i < capas; i++) {
-    // Cuánto tiene que aportar esta capa para que el apilado dé la curva.
-    const previa = acumulada(i);
-    const objetivo = acumulada(i + 1);
-    const opacidad = 1 - (1 - objetivo) / (1 - previa);
-    if (opacidad <= 0) continue;
-
-    doc.setGState(new GStateDePdf({ opacity: opacidad }));
-    const recorte = i * paso;
-    if (direccion === "abajo") {
-      doc.rect(0, desde + recorte, ancho, altura - recorte, "F");
-    } else {
-      doc.rect(0, desde, ancho, altura - recorte, "F");
-    }
-  }
-
-  doc.restoreGraphicsState();
 }
 
 function linea(

@@ -161,3 +161,24 @@ export const packsPorGrupo = (grupo: Pack["grupo"]) =>
   packs.filter((p) => p.grupo === grupo);
 
 export const buscarPack = (id: string) => packs.find((p) => p.id === id);
+
+/**
+ * Formas de pago. Se muestran en la página de servicios y se pueden sumar al
+ * presupuesto en PDF, para que el cliente tenga las condiciones por escrito.
+ */
+export const formasDePago = [
+  {
+    titulo: "Con seña",
+    detalle:
+      "Con el 30% reservás la fecha y te queda congelado el precio: no lo afectan los aumentos posteriores. El saldo se abona en cuotas fijas, sin interés, hasta el día del evento.",
+  },
+  {
+    titulo: "Al contado",
+    detalle:
+      "Abonando el total de una sola vez tenés un 20% de descuento sobre el valor del pack.",
+  },
+];
+
+/** Vale para cualquiera de las dos formas: conviene dejarlo bien claro. */
+export const condicionDePago =
+  "En todos los casos el pack tiene que estar saldado antes del día del evento.";

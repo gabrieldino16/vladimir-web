@@ -15,6 +15,9 @@ type Grupo = { id: Pack["grupo"]; nombre: string; bajada: string };
 
 type FotoSugerida = { id: string; miniatura: string; grande: string };
 
+/** Un agregado suelto, fuera de los packs. El precio puede quedar en cero. */
+type Extra = { id: string; titulo: string; detalle: string; precio: number };
+
 /**
  * Tipos de evento del presupuesto. El "slug" es la galería de la que se
  * proponen fotos para la portada; "Otro" no tiene galería asociada.
@@ -159,10 +162,43 @@ export function Presupuestos({
     [packs, packId],
   );
 
-  const items = personalizado
+  // Lo que se suma al pack: un cuadro, sesiones de más, lo que el cliente pida
+  // y no esté en la lista. Cada uno puede sumar al total o ir sin cargo.
+  const [extras, setExtras] = useState<Extra[]>([]);
+
+  const extrasValidos = extras.filter((e) => e.titulo.trim());
+
+  const itemsDelPack = personalizado
     ? clavesElegidas.map((c) => itemsDisponibles[c])
     : (packElegido?.items ?? []);
-  const precio = personalizado ? precioPersonalizado : (packElegido?.precio ?? 0);
+
+  const items: Item[] = [
+    ...itemsDelPack,
+    ...extrasValidos.map((e) => ({
+      titulo: e.titulo.trim(),
+      detalle: e.detalle.trim(),
+    })),
+  ];
+
+  const precioBase = personalizado ? precioPersonalizado : (packElegido?.precio ?? 0);
+  const precio = precioBase + extrasValidos.reduce((suma, e) => suma + (e.precio || 0), 0);
+
+  function agregarExtra() {
+    setExtras((actuales) => [
+      ...actuales,
+      { id: crypto.randomUUID(), titulo: "", detalle: "", precio: 0 },
+    ]);
+  }
+
+  function cambiarExtra(id: string, campo: keyof Omit<Extra, "id">, valor: string | number) {
+    setExtras((actuales) =>
+      actuales.map((e) => (e.id === id ? { ...e, [campo]: valor } : e)),
+    );
+  }
+
+  function quitarExtra(id: string) {
+    setExtras((actuales) => actuales.filter((e) => e.id !== id));
+  }
   const nombrePack = personalizado
     ? nombrePersonalizado
     : `${grupos.find((g) => g.id === packElegido?.grupo)?.nombre ?? ""} — ${packElegido?.nombre ?? ""}`;
@@ -338,6 +374,81 @@ export function Presupuestos({
                   </div>
                 </div>
               )}
+            </Bloque>
+
+            <Bloque titulo="Agregados">
+              <p className="mb-5 text-xs leading-relaxed text-texto-tenue">
+                Para lo que el cliente pida y no esté en los packs: un cuadro,
+                sesiones de más, una hora extra. Se suman al final del
+                presupuesto. Si dejás el precio en cero, aparece igual pero no
+                cambia el total: sirve para lo que va sin cargo.
+              </p>
+
+              {extras.length > 0 && (
+                <div className="mb-4 space-y-4">
+                  {extras.map((extra, indice) => (
+                    <div
+                      key={extra.id}
+                      className="border border-dorado/20 bg-negro p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-xs tracking-[0.2em] text-dorado uppercase">
+                          Agregado {indice + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => quitarExtra(extra.id)}
+                          className="text-xs tracking-[0.15em] text-texto-tenue uppercase transition-colors hover:text-dorado"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
+                        <Campo etiqueta="Título">
+                          <input
+                            value={extra.titulo}
+                            onChange={(e) => cambiarExtra(extra.id, "titulo", e.target.value)}
+                            placeholder="Ej. Cuadro 40x60"
+                            className={entrada}
+                          />
+                        </Campo>
+                        <Campo etiqueta="Precio">
+                          <input
+                            type="number"
+                            min={0}
+                            value={extra.precio}
+                            onChange={(e) =>
+                              cambiarExtra(extra.id, "precio", Number(e.target.value))
+                            }
+                            className={entrada}
+                          />
+                        </Campo>
+                      </div>
+
+                      <div className="mt-3">
+                        <Campo etiqueta="Descripción">
+                          <textarea
+                            rows={2}
+                            value={extra.detalle}
+                            onChange={(e) => cambiarExtra(extra.id, "detalle", e.target.value)}
+                            placeholder="Impreso sobre papel fotográfico, con marco de madera."
+                            className={`${entrada} resize-y`}
+                          />
+                        </Campo>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={agregarExtra}
+                className="border border-dorado/40 px-5 py-2 text-xs tracking-[0.15em] text-dorado uppercase transition-colors hover:bg-dorado hover:text-negro"
+              >
+                + Agregar otro
+              </button>
             </Bloque>
 
             <Bloque titulo="Foto de portada">

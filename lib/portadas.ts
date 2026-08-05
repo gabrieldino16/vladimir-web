@@ -16,10 +16,17 @@ export type Eleccion = {
   /** De qué galería salió, para poder ir a buscarla. */
   galeria: string;
   encuadre: Encuadre;
+  /**
+   * Encuadre para el celular. Solo lo usan las portadas a pantalla completa:
+   * ahí el recuadro pasa de ancho a alto y el mismo punto no sirve para las
+   * dos. En las tarjetas el recuadro es vertical siempre, así que no hace falta.
+   */
+  encuadreMovil?: Encuadre;
 };
 
 export type Portadas = {
   inicio?: Eleccion;
+  beneficio?: Eleccion;
   galerias: Record<string, Eleccion>;
 };
 

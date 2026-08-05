@@ -28,7 +28,9 @@ export default async function Galeria({
   const tipo = tiposDeEvento.find((t) => t.slug === categoria);
   if (!tipo) notFound();
 
-  const fotos = await fotosDeGaleria(categoria);
+  // Se traen todas: varias son secuencias de una misma sesión y cortarlas
+  // a la mitad rompe la lectura.
+  const fotos = await fotosDeGaleria(categoria, 300);
 
   return (
     <>

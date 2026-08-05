@@ -23,8 +23,12 @@ export async function guardarPortadas(portadas: Portadas): Promise<void> {
   await guardar(ARCHIVO, portadas);
 }
 
-/** La foto elegida junto con su encuadre. */
-export type PortadaResuelta = { foto: Foto; encuadre: Encuadre };
+/** La foto elegida junto con sus encuadres. */
+export type PortadaResuelta = {
+  foto: Foto;
+  encuadre: Encuadre;
+  encuadreMovil?: Encuadre;
+};
 
 /**
  * Busca las fotos elegidas dentro de sus galerías. Si una foto ya no está
@@ -33,6 +37,7 @@ export type PortadaResuelta = { foto: Foto; encuadre: Encuadre };
  */
 export async function resolverPortadas(fotosPorGaleria: Record<string, Foto[]>): Promise<{
   inicio?: PortadaResuelta;
+  beneficio?: PortadaResuelta;
   galerias: Record<string, PortadaResuelta>;
 }> {
   const portadas = await leerPortadas();
@@ -40,7 +45,9 @@ export async function resolverPortadas(fotosPorGaleria: Record<string, Foto[]>):
   const buscar = (eleccion?: Eleccion): PortadaResuelta | undefined => {
     if (!eleccion) return undefined;
     const foto = fotosPorGaleria[eleccion.galeria]?.find((f) => f.id === eleccion.id);
-    return foto ? { foto, encuadre: eleccion.encuadre } : undefined;
+    return foto
+      ? { foto, encuadre: eleccion.encuadre, encuadreMovil: eleccion.encuadreMovil }
+      : undefined;
   };
 
   const galerias: Record<string, PortadaResuelta> = {};
@@ -49,7 +56,11 @@ export async function resolverPortadas(fotosPorGaleria: Record<string, Foto[]>):
     if (resuelta) galerias[slug] = resuelta;
   }
 
-  return { inicio: buscar(portadas.inicio), galerias };
+  return {
+    inicio: buscar(portadas.inicio),
+    beneficio: buscar(portadas.beneficio),
+    galerias,
+  };
 }
 
 /**

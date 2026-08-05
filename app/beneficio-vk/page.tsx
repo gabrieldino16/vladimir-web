@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
+import { Marco } from "@/components/Marco";
 import { Formulario } from "@/components/Formulario";
 import { IconoRegalo } from "@/components/Iconos";
 import { site } from "@/lib/site";
+import {
+  automaticaDelInicio,
+  fotosDeTodasLasGalerias,
+  resolverPortadas,
+} from "@/lib/portadas-servidor";
+import { aPosicionCss } from "@/lib/portadas";
 
 /**
  * Página del beneficio de las tarjetas personales.
@@ -20,38 +27,64 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function Beneficio() {
+export default async function Beneficio() {
+  // La foto de fondo la elige el fotógrafo desde el panel; si no eligió, se
+  // usa una apaisada cualquiera, igual que en el inicio.
+  const fotosPorGaleria = await fotosDeTodasLasGalerias();
+  const elegidas = await resolverPortadas(fotosPorGaleria);
+  const foto = elegidas.beneficio?.foto ?? automaticaDelInicio(fotosPorGaleria);
+  const posicion = elegidas.beneficio
+    ? aPosicionCss(elegidas.beneficio.encuadre)
+    : undefined;
+  const posicionMovil = elegidas.beneficio?.encuadreMovil
+    ? aPosicionCss(elegidas.beneficio.encuadreMovil)
+    : undefined;
+
   return (
     <>
       <main className="flex-1">
         <section className="relative overflow-hidden px-5 pt-20 pb-16 text-center">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-carbon via-negro-suave to-negro" />
+          <div className="absolute inset-0 -z-10">
+            <Marco
+              foto={foto}
+              conIcono={false}
+              medida="grande"
+              sizes="100vw"
+              posicion={posicion}
+              posicionMovil={posicionMovil}
+              prioridad
+            />
+            {/* El 20% OFF va encima, así que la foto queda bien apagada: acá
+                manda el mensaje, no la imagen. */}
+            <div className="absolute inset-0 bg-black/65" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-negro" />
+          </div>
 
           <div className="aparecer mx-auto max-w-2xl">
-            <Logo className="mx-auto h-20 text-dorado" />
+            <Logo className="sombra-logo mx-auto h-20 text-dorado" />
 
             <p className="mt-10 inline-flex items-center gap-2 border border-dorado/40 px-4 py-2 text-xs tracking-[0.3em] text-dorado uppercase">
               <IconoRegalo className="h-4 w-4" />
               Beneficio exclusivo
             </p>
 
-            <h1 className="titulo mt-8 text-4xl font-light sm:text-5xl">
+            <h1 className="sombra-texto titulo mt-8 text-4xl font-light sm:text-5xl">
               ¡Felicitaciones!
             </h1>
-            <p className="mt-3 text-sm tracking-[0.25em] text-texto-tenue uppercase">
+            <p className="sombra-texto mt-3 text-sm tracking-[0.25em] text-texto uppercase">
               Acabás de desbloquear tu beneficio
             </p>
 
             <p className="dorado titulo mt-8 text-7xl font-bold sm:text-8xl">
               {site.beneficio.titulo}
             </p>
-            <p className="mt-2 text-lg text-texto sm:text-xl">
+            <p className="sombra-texto mt-2 text-lg text-texto sm:text-xl">
               {site.beneficio.bajada}
             </p>
 
             <div className="filete mx-auto my-10 w-56" />
 
-            <p className="mx-auto max-w-lg leading-relaxed text-texto-tenue">
+            <p className="sombra-texto mx-auto max-w-lg leading-relaxed text-texto">
               Completá tus datos y contame qué servicio te interesa. Vladimir se
               va a contactar con vos para coordinar y aplicar tu descuento.
             </p>

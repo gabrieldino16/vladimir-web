@@ -12,8 +12,12 @@ import {
 
 type Galeria = { slug: string; nombre: string };
 
+/** Las portadas a pantalla completa; las demás son tarjetas verticales. */
+type ClaveSuelta = "inicio" | "beneficio";
+
 /**
- * Elección de las fotos de portada: la grande del inicio y la de cada galería.
+ * Elección de las fotos de portada: la del inicio, la de la página del
+ * beneficio y la de cada galería.
  *
  * Cada recuadro se muestra con la misma forma que tiene en la web, para que lo
  * que se ve acá sea lo que va a quedar publicado.
@@ -38,16 +42,25 @@ export function Portadas({
   const todas = Object.values(fotosPorGaleria).flat();
 
   function cambiar(actualizar: (actuales: Elecciones) => Elecciones) {
-    setElecciones((actuales) => actualizar(actuales));
+    setElecciones(actualizar);
     setSinCambios(false);
     setAviso("");
   }
 
-  function elegirInicio(foto: Foto, galeria: string) {
+  /** De qué galería salió una foto, para poder volver a encontrarla después. */
+  function galeriaDe(foto: Foto) {
+    return (
+      Object.entries(fotosPorGaleria).find(([, fs]) => fs.some((f) => f.id === foto.id))?.[0] ?? ""
+    );
+  }
+
+  function elegirSuelta(clave: ClaveSuelta, foto: Foto) {
+    const galeria = galeriaDe(foto);
+    if (!galeria) return;
     cambiar((a) => ({
       ...a,
-      inicio:
-        a.inicio?.id === foto.id
+      [clave]:
+        a[clave]?.id === foto.id
           ? undefined
           : { id: foto.id, galeria, encuadre: ENCUADRE_POR_DEFECTO },
     }));
@@ -65,8 +78,8 @@ export function Portadas({
     });
   }
 
-  function moverInicio(encuadre: Encuadre) {
-    cambiar((a) => (a.inicio ? { ...a, inicio: { ...a.inicio, encuadre } } : a));
+  function moverSuelta(clave: ClaveSuelta, campo: "encuadre" | "encuadreMovil", valor: Encuadre) {
+    cambiar((a) => (a[clave] ? { ...a, [clave]: { ...a[clave]!, [campo]: valor } } : a));
   }
 
   function moverGaleria(slug: string, encuadre: Encuadre) {
@@ -100,43 +113,50 @@ export function Portadas({
   const fotoDe = (eleccion?: Eleccion) =>
     eleccion ? fotosPorGaleria[eleccion.galeria]?.find((f) => f.id === eleccion.id) : undefined;
 
+  /** Los dos bloques a pantalla completa comparten toda la interfaz. */
+  const sueltas: { clave: ClaveSuelta; titulo: string; bajada: string }[] = [
+    {
+      clave: "inicio",
+      titulo: "Portada del inicio",
+      bajada:
+        "Es la foto grande que se ve al entrar. Conviene una apaisada, y el encuadre se ajusta aparte para la computadora y para el celular.",
+    },
+    {
+      clave: "beneficio",
+      titulo: "Portada del beneficio",
+      bajada:
+        "El fondo de la página a la que lleva el QR de las tarjetas. Como arriba va el 20% OFF, conviene una foto sin mucho detalle en el centro.",
+    },
+  ];
+
   return (
     <div className="space-y-8">
-      <Bloque
-        titulo="Portada del inicio"
-        bajada="Es la foto grande que se ve al entrar a la web. Conviene una apaisada: entra entera."
-      >
-        <Editor
-          foto={fotoDe(elecciones.inicio)}
-          encuadre={elecciones.inicio?.encuadre}
-          proporcion="16 / 9"
-          alMover={moverInicio}
-          alQuitar={() => cambiar((a) => ({ ...a, inicio: undefined }))}
-        />
-        <Elegibles
-          fotos={todas}
-          elegida={elecciones.inicio?.id}
-          alElegir={(foto) => {
-            const galeria =
-              Object.entries(fotosPorGaleria).find(([, fs]) =>
-                fs.some((f) => f.id === foto.id),
-              )?.[0] ?? "";
-            if (galeria) elegirInicio(foto, galeria);
-          }}
-        />
-      </Bloque>
+      {sueltas.map(({ clave, titulo, bajada }) => (
+        <Bloque key={clave} titulo={titulo} bajada={bajada}>
+          <EditorPantallaCompleta
+            foto={fotoDe(elecciones[clave])}
+            encuadre={elecciones[clave]?.encuadre}
+            encuadreMovil={elecciones[clave]?.encuadreMovil}
+            alMover={(campo, valor) => moverSuelta(clave, campo, valor)}
+            alQuitar={() => cambiar((a) => ({ ...a, [clave]: undefined }))}
+          />
+          <Elegibles
+            fotos={todas}
+            elegida={elecciones[clave]?.id}
+            alElegir={(foto) => elegirSuelta(clave, foto)}
+          />
+        </Bloque>
+      ))}
 
       {galerias.map((g) => (
         <Bloque
           key={g.slug}
           titulo={`Portada de ${g.nombre}`}
-          bajada="Es la tarjeta que lleva a esta galería. El recuadro es vertical."
+          bajada="Es la tarjeta que lleva a esta galería. El recuadro es vertical en cualquier pantalla, así que alcanza con un encuadre."
         >
-          <Editor
+          <EditorTarjeta
             foto={fotoDe(elecciones.galerias[g.slug])}
             encuadre={elecciones.galerias[g.slug]?.encuadre}
-            proporcion="3 / 4"
-            ancho="max-w-[260px]"
             alMover={(e) => moverGaleria(g.slug, e)}
             alQuitar={() =>
               cambiar((a) => {
@@ -168,69 +188,116 @@ export function Portadas({
   );
 }
 
-/** Vista previa con la forma real del recuadro, más los controles para moverla. */
-function Editor({
+/**
+ * Portada a pantalla completa: se previsualiza en las dos formas, porque en el
+ * celular el recuadro pasa de ancho a alto y se ve una franja muy distinta.
+ */
+function EditorPantallaCompleta({
   foto,
   encuadre = ENCUADRE_POR_DEFECTO,
-  proporcion,
-  ancho = "",
+  encuadreMovil,
   alMover,
   alQuitar,
 }: {
   foto?: Foto;
   encuadre?: Encuadre;
-  proporcion: string;
-  ancho?: string;
-  alMover: (encuadre: Encuadre) => void;
+  encuadreMovil?: Encuadre;
+  alMover: (campo: "encuadre" | "encuadreMovil", valor: Encuadre) => void;
   alQuitar: () => void;
 }) {
-  if (!foto) {
-    return (
-      <p className="mb-5 border border-dashed border-dorado/25 px-4 py-6 text-center text-xs text-texto-tenue">
-        Sin elegir: la web muestra una foto automáticamente.
-      </p>
-    );
-  }
+  if (!foto) return <SinElegir />;
+
+  // Mientras no se toque el del celular, sigue al de la computadora.
+  const movil = encuadreMovil ?? encuadre;
 
   return (
     <div className="mb-5">
-      <div
-        className={`relative overflow-hidden border border-dorado/40 ${ancho}`}
-        style={{ aspectRatio: proporcion }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={foto.miniatura}
-          alt=""
-          className="h-full w-full object-cover"
-          style={{ objectPosition: aPosicionCss(encuadre) }}
-        />
+      <div className="grid gap-6 sm:grid-cols-[1fr_180px]">
+        <div>
+          <Rotulo>En la computadora</Rotulo>
+          <Vista foto={foto} encuadre={encuadre} proporcion="16 / 9" />
+          <Controles encuadre={encuadre} alCambiar={(e) => alMover("encuadre", e)} />
+        </div>
+
+        <div>
+          <Rotulo>En el celular</Rotulo>
+          <Vista foto={foto} encuadre={movil} proporcion="9 / 16" />
+          <Controles encuadre={movil} alCambiar={(e) => alMover("encuadreMovil", e)} />
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Deslizador
-          etiqueta="Mover de arriba a abajo"
-          valor={encuadre.y}
-          alCambiar={(y) => alMover({ ...encuadre, y })}
-          izquierda="Arriba"
-          derecha="Abajo"
-        />
-        <Deslizador
-          etiqueta="Mover de izquierda a derecha"
-          valor={encuadre.x}
-          alCambiar={(x) => alMover({ ...encuadre, x })}
-          izquierda="Izquierda"
-          derecha="Derecha"
-        />
-      </div>
+      <Quitar onClick={alQuitar} />
+    </div>
+  );
+}
 
-      <button
-        type="button"
-        onClick={alQuitar}
-        className="mt-3 text-xs tracking-[0.15em] text-texto-tenue uppercase transition-colors hover:text-dorado"
-      >
-        Volver a la automática
-      </button>
+/** Portada de galería: el recuadro es vertical en cualquier pantalla. */
+function EditorTarjeta({
+  foto,
+  encuadre = ENCUADRE_POR_DEFECTO,
+  alMover,
+  alQuitar,
+}: {
+  foto?: Foto;
+  encuadre?: Encuadre;
+  alMover: (encuadre: Encuadre) => void;
+  alQuitar: () => void;
+}) {
+  if (!foto) return <SinElegir />;
+
+  return (
+    <div className="mb-5 max-w-[260px]">
+      <Vista foto={foto} encuadre={encuadre} proporcion="3 / 4" />
+      <Controles encuadre={encuadre} alCambiar={alMover} />
+      <Quitar onClick={alQuitar} />
+    </div>
+  );
+}
+
+function Vista({
+  foto,
+  encuadre,
+  proporcion,
+}: {
+  foto: Foto;
+  encuadre: Encuadre;
+  proporcion: string;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden border border-dorado/40"
+      style={{ aspectRatio: proporcion }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={foto.miniatura}
+        alt=""
+        className="h-full w-full object-cover"
+        style={{ objectPosition: aPosicionCss(encuadre) }}
+      />
+    </div>
+  );
+}
+
+function Controles({
+  encuadre,
+  alCambiar,
+}: {
+  encuadre: Encuadre;
+  alCambiar: (encuadre: Encuadre) => void;
+}) {
+  return (
+    <div className="mt-3 space-y-3">
+      <Deslizador
+        etiqueta="Arriba / abajo"
+        valor={encuadre.y}
+        alCambiar={(y) => alCambiar({ ...encuadre, y })}
+      />
+      <Deslizador
+        etiqueta="Izquierda / derecha"
+        valor={encuadre.x}
+        alCambiar={(x) => alCambiar({ ...encuadre, x })}
+      />
     </div>
   );
 }
@@ -239,18 +306,14 @@ function Deslizador({
   etiqueta,
   valor,
   alCambiar,
-  izquierda,
-  derecha,
 }: {
   etiqueta: string;
   valor: number;
   alCambiar: (valor: number) => void;
-  izquierda: string;
-  derecha: string;
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs tracking-[0.2em] text-texto-tenue uppercase">
+      <span className="mb-1 block text-[0.65rem] tracking-[0.15em] text-texto-tenue uppercase">
         {etiqueta}
       </span>
       <input
@@ -261,11 +324,33 @@ function Deslizador({
         onChange={(e) => alCambiar(Number(e.target.value) / 100)}
         className="w-full accent-[#c9a24a]"
       />
-      <span className="mt-1 flex justify-between text-[0.65rem] text-texto-tenue">
-        <span>{izquierda}</span>
-        <span>{derecha}</span>
-      </span>
     </label>
+  );
+}
+
+function Rotulo({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2 text-[0.65rem] tracking-[0.25em] text-dorado uppercase">{children}</p>
+  );
+}
+
+function SinElegir() {
+  return (
+    <p className="mb-5 border border-dashed border-dorado/25 px-4 py-6 text-center text-xs text-texto-tenue">
+      Sin elegir: la web muestra una foto automáticamente.
+    </p>
+  );
+}
+
+function Quitar({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-3 text-xs tracking-[0.15em] text-texto-tenue uppercase transition-colors hover:text-dorado"
+    >
+      Volver a la automática
+    </button>
   );
 }
 
@@ -279,15 +364,11 @@ function Elegibles({
   alElegir: (foto: Foto) => void;
 }) {
   if (fotos.length === 0) {
-    return (
-      <p className="text-xs text-texto-tenue">
-        Esta galería todavía no tiene fotos cargadas.
-      </p>
-    );
+    return <p className="text-xs text-texto-tenue">Esta galería todavía no tiene fotos cargadas.</p>;
   }
 
   return (
-    <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+    <div className="grid max-h-72 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-8">
       {fotos.map((foto) => (
         <button
           key={foto.id}

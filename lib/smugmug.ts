@@ -114,10 +114,26 @@ async function pedir(url: string) {
   return respuesta.json();
 }
 
-/** Trae las fotos de un álbum público de SmugMug. */
+/** Cuántas pide en cada vuelta: es el máximo que sirve SmugMug por pedido. */
+const POR_PEDIDO = 100;
+
+/**
+ * Trae las fotos de un álbum público de SmugMug, en el orden en que están
+ * ordenadas ahí. Pide de a tandas porque la API no devuelve más de cien por
+ * vez, y así un álbum grande no aparece cortado.
+ */
 export async function fotosDelAlbum(albumKey: string, limite = 60): Promise<Foto[]> {
-  const datos = await pedir(`${API}/album/${albumKey}!images?count=${limite}`);
-  const imagenes: ImagenSmugMug[] = datos?.Response?.AlbumImage ?? [];
+  const imagenes: ImagenSmugMug[] = [];
+
+  for (let desde = 1; imagenes.length < limite; desde += POR_PEDIDO) {
+    const cuantas = Math.min(POR_PEDIDO, limite - imagenes.length);
+    const datos = await pedir(
+      `${API}/album/${albumKey}!images?start=${desde}&count=${cuantas}`,
+    );
+    const tanda: ImagenSmugMug[] = datos?.Response?.AlbumImage ?? [];
+    imagenes.push(...tanda);
+    if (tanda.length < cuantas) break; // no hay más
+  }
 
   return imagenes
     .filter((img) => !img.IsVideo && img.ThumbnailUrl)
@@ -145,9 +161,9 @@ export async function fotosDelAlbum(albumKey: string, limite = 60): Promise<Foto
  * devuelve una lista vacía para que la página muestre su estado de "próximamente"
  * en lugar de romperse.
  *
- * Con varios álbumes las fotos se intercalan (una de cada uno por vuelta), así
- * la grilla muestra eventos distintos desde el principio y no un álbum entero
- * seguido del siguiente.
+ * Las fotos salen en el mismo orden en que están en SmugMug: muchas son
+ * secuencias de una misma sesión y tienen que verse una atrás de la otra.
+ * Con varios álbumes se muestran uno después del otro, sin mezclarlos.
  */
 export async function fotosDeGaleria(slug: string, limite = 60): Promise<Foto[]> {
   const claves = clavesDeGaleria(slug);
@@ -164,12 +180,5 @@ export async function fotosDeGaleria(slug: string, limite = 60): Promise<Foto[]>
     }),
   );
 
-  const mezcladas: Foto[] = [];
-  const masLargo = Math.max(0, ...porAlbum.map((a) => a.length));
-  for (let i = 0; i < masLargo && mezcladas.length < limite; i++) {
-    for (const album of porAlbum) {
-      if (album[i] && mezcladas.length < limite) mezcladas.push(album[i]);
-    }
-  }
-  return mezcladas;
+  return porAlbum.flat().slice(0, limite);
 }

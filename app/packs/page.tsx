@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Encabezado } from "@/components/Encabezado";
 import { IconoWhatsapp } from "@/components/Iconos";
 import { site } from "@/lib/site";
-import { grupos, packsPorGrupo } from "@/lib/packs";
+import { condicionDePago, formasDePago, grupos, packsPorGrupo } from "@/lib/packs";
 
 export const metadata: Metadata = {
   title: "Servicios",
@@ -74,6 +74,33 @@ export default function Packs() {
               </div>
             </section>
           ))}
+
+          {/* ------------------------------------------------ formas de pago */}
+          <section className="mt-24">
+            <Encabezado
+              volanta="Formas de pago"
+              titulo="Cómo se abona"
+              bajada="Dos maneras de contratar, según lo que te convenga."
+            />
+
+            <div className="mt-14 grid gap-6 sm:grid-cols-2">
+              {formasDePago.map((forma) => (
+                <div
+                  key={forma.titulo}
+                  className="border border-dorado/20 bg-negro-suave p-8 transition-colors hover:border-dorado/50"
+                >
+                  <h3 className="titulo dorado text-2xl">{forma.titulo}</h3>
+                  <p className="mt-4 leading-relaxed text-texto-tenue">
+                    {forma.detalle}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-8 border-l-2 border-dorado px-5 py-1 text-sm leading-relaxed text-texto-tenue">
+              {condicionDePago}
+            </p>
+          </section>
 
           <div className="mt-20 border border-dorado/20 bg-negro-suave px-6 py-14 text-center">
             <h2 className="titulo text-3xl">¿Necesitás algo distinto?</h2>

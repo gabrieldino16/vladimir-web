@@ -15,6 +15,7 @@ export function Marco({
   medida = "miniatura",
   sizes = "(max-width: 768px) 100vw, 33vw",
   posicion,
+  posicionMovil,
 }: {
   foto?: Foto;
   etiqueta?: string;
@@ -36,8 +37,21 @@ export function Marco({
    * una foto de personas suele cortar las caras.
    */
   posicion?: string;
+  /**
+   * Encuadre para pantallas chicas. En el celular el recuadro es mucho más
+   * alto, así que de una foto apaisada se ve una franja angosta del medio y
+   * casi nunca conviene el mismo punto que en la computadora.
+   */
+  posicionMovil?: string;
 }) {
   if (foto) {
+    // Las dos posiciones viajan como variables de CSS; la clase "encuadre"
+    // elige cuál usar según el ancho de la pantalla.
+    const estilo = {
+      "--encuadre-escritorio": posicion,
+      "--encuadre-movil": posicionMovil ?? posicion,
+    } as React.CSSProperties;
+
     return (
       <Image
         src={foto[medida]}
@@ -46,8 +60,8 @@ export function Marco({
         height={foto.alto}
         priority={prioridad}
         sizes={sizes}
-        style={posicion ? { objectPosition: posicion } : undefined}
-        className={`h-full w-full object-cover ${className}`}
+        style={posicion ? estilo : undefined}
+        className={`h-full w-full object-cover ${posicion ? "encuadre" : ""} ${className}`}
       />
     );
   }

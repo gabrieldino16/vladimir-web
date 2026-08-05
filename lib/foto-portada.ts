@@ -76,7 +76,36 @@ export async function recortarParaPortada(
     alto,
   );
 
+  fundirConElFondo(pincel, ancho, alto);
+
   return lienzo.toDataURL("image/jpeg", 0.86);
+}
+
+/**
+ * Oscurece la foto arriba y la apaga hacia abajo hasta el negro, para que se
+ * funda con la hoja y el nombre se lea sobre cualquier imagen.
+ *
+ * Se hace acá, sobre la foto, y no dibujando rectángulos encima en el PDF: los
+ * PDF no tienen degradados propios, así que había que apilar decenas de
+ * rectángulos translúcidos y varios visores dibujaban el borde de cada uno como
+ * una línea. Sobre el lienzo el degradado es uno solo y sale parejo.
+ */
+function fundirConElFondo(pincel: CanvasRenderingContext2D, ancho: number, alto: number) {
+  // Hacia abajo: limpio un buen tramo y recién sobre el final cierra en negro.
+  const abajo = pincel.createLinearGradient(0, alto * 0.34, 0, alto);
+  abajo.addColorStop(0, "rgba(10,10,10,0)");
+  abajo.addColorStop(0.5, "rgba(10,10,10,0.25)");
+  abajo.addColorStop(0.85, "rgba(10,10,10,0.8)");
+  abajo.addColorStop(1, "rgba(10,10,10,1)");
+  pincel.fillStyle = abajo;
+  pincel.fillRect(0, alto * 0.34, ancho, alto - alto * 0.34);
+
+  // Hacia arriba: velo parejo detrás del nombre y la fecha.
+  const arriba = pincel.createLinearGradient(0, 0, 0, alto * 0.42);
+  arriba.addColorStop(0, "rgba(10,10,10,0.85)");
+  arriba.addColorStop(1, "rgba(10,10,10,0)");
+  pincel.fillStyle = arriba;
+  pincel.fillRect(0, 0, ancho, alto * 0.42);
 }
 
 /** El recorte más grande del original que respeta la proporción pedida. */

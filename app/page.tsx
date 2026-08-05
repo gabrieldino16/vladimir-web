@@ -40,8 +40,9 @@ export default async function Inicio() {
   // El fondo de la portada es ancho: sin elección se usa una apaisada, porque
   // una vertical quedaría recortada por el medio.
   const fotoPortada = elegidas.inicio?.foto ?? automaticaDelInicio(fotosPorGaleria);
-  const posicionPortada = elegidas.inicio
-    ? aPosicionCss(elegidas.inicio.encuadre)
+  const posicionPortada = elegidas.inicio ? aPosicionCss(elegidas.inicio.encuadre) : undefined;
+  const posicionPortadaMovil = elegidas.inicio?.encuadreMovil
+    ? aPosicionCss(elegidas.inicio.encuadreMovil)
     : undefined;
 
   return (
@@ -60,24 +61,28 @@ export default async function Inicio() {
               medida="grande"
               sizes="100vw"
               posicion={posicionPortada}
+              posicionMovil={posicionPortadaMovil}
               prioridad
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-negro" />
+            {/* Dos capas: un velo parejo que asegura contraste con cualquier
+                foto, y el degradado que cierra contra el fondo de la página. */}
+            <div className="absolute inset-0 bg-black/45" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-negro" />
           </div>
 
           <div className="aparecer flex flex-col items-center px-5 text-center">
             {/* El isologo ya trae el nombre, así que no se repite como texto.
                 El h1 queda igual para buscadores y lectores de pantalla. */}
-            <Logo className="h-40 sm:h-52" conNombre />
+            <Logo className="sombra-logo h-40 sm:h-52" conNombre />
             <h1 className="sr-only">Vladimir Krauchuk — Fotografía y video</h1>
 
-            <p className="mt-5 text-xs tracking-[0.55em] text-texto-tenue sm:text-sm">
+            <p className="sombra-texto mt-5 text-xs tracking-[0.55em] text-texto sm:text-sm">
               FOTO &amp; VIDEO
             </p>
 
             <div className="filete my-9 w-56" />
 
-            <p className="max-w-xl text-base leading-relaxed text-texto-tenue sm:text-lg">
+            <p className="sombra-texto max-w-xl text-base leading-relaxed text-texto sm:text-lg">
               Momentos que no se repiten, contados con imágenes que emocionan.
               15 años, casamientos y eventos empresariales.
             </p>

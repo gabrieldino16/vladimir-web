@@ -10,24 +10,31 @@ import { revalidatePath } from "next/cache";
 import { haySesion } from "@/lib/auth";
 import { guardarPortadas, leerPortadas } from "@/lib/portadas-servidor";
 import type { Eleccion, Portadas } from "@/lib/portadas";
-import { tiposDeEvento } from "@/lib/site";
+import { site, tiposDeEvento } from "@/lib/site";
 
 const SLUGS = tiposDeEvento.map((t) => t.slug) as string[];
+
+function encuadreValido(valor: unknown): boolean {
+  if (!valor || typeof valor !== "object") return false;
+  const e = valor as Record<string, unknown>;
+  return (
+    typeof e.x === "number" &&
+    typeof e.y === "number" &&
+    e.x >= 0 && e.x <= 1 &&
+    e.y >= 0 && e.y <= 1
+  );
+}
 
 function eleccionValida(valor: unknown): valor is Eleccion {
   if (!valor || typeof valor !== "object") return false;
   const e = valor as Record<string, unknown>;
-  const enc = e.encuadre as Record<string, unknown> | undefined;
   return (
     typeof e.id === "string" &&
     e.id.length > 0 &&
     typeof e.galeria === "string" &&
     SLUGS.includes(e.galeria) &&
-    !!enc &&
-    typeof enc.x === "number" &&
-    typeof enc.y === "number" &&
-    enc.x >= 0 && enc.x <= 1 &&
-    enc.y >= 0 && enc.y <= 1
+    encuadreValido(e.encuadre) &&
+    (e.encuadreMovil === undefined || encuadreValido(e.encuadreMovil))
   );
 }
 
@@ -53,11 +60,16 @@ export async function PUT(pedido: Request) {
   const entrante = cuerpo as Partial<Portadas>;
   const portadas: Portadas = { galerias: {} };
 
-  if (entrante.inicio !== undefined && entrante.inicio !== null) {
-    if (!eleccionValida(entrante.inicio)) {
-      return NextResponse.json({ error: "La portada del inicio es inválida." }, { status: 400 });
+  for (const clave of ["inicio", "beneficio"] as const) {
+    const eleccion = entrante[clave];
+    if (eleccion === undefined || eleccion === null) continue;
+    if (!eleccionValida(eleccion)) {
+      return NextResponse.json(
+        { error: `La portada de "${clave}" es inválida.` },
+        { status: 400 },
+      );
     }
-    portadas.inicio = entrante.inicio;
+    portadas[clave] = eleccion;
   }
 
   for (const [slug, eleccion] of Object.entries(entrante.galerias ?? {})) {
@@ -84,6 +96,7 @@ export async function PUT(pedido: Request) {
 
   revalidatePath("/");
   revalidatePath("/galerias");
+  revalidatePath(`/${site.rutaBeneficio}`);
 
   return NextResponse.json({ ok: true });
 }
