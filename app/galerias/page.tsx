@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Encabezado } from "@/components/Encabezado";
 import { Marco } from "@/components/Marco";
 import { IconoFlecha } from "@/components/Iconos";
-import { tiposDeEvento } from "@/lib/site";
+import { columnas, tiposDeEvento } from "@/lib/site";
 import {
   automaticaDeGaleria,
   fotosDeTodasLasGalerias,
@@ -25,14 +25,17 @@ export default async function Galerias() {
   const fotosPorGaleria = await fotosDeTodasLasGalerias();
   const elegidas = await resolverPortadas(fotosPorGaleria);
 
-  const galerias = tiposDeEvento.map((t) => {
-    const elegida = elegidas.galerias[t.slug];
-    return {
-      ...t,
-      foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
-      posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
-    };
-  });
+  // Igual que en el inicio: las galerías sin álbum cargado no se listan.
+  const galerias = tiposDeEvento
+    .filter((t) => (fotosPorGaleria[t.slug] ?? []).length > 0)
+    .map((t) => {
+      const elegida = elegidas.galerias[t.slug];
+      return {
+        ...t,
+        foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
+        posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
+      };
+    });
 
   return (
     <>
@@ -45,7 +48,7 @@ export default async function Galerias() {
             bajada="Elegí el tipo de evento para ver los trabajos."
           />
 
-          <div className="mt-16 grid gap-6 md:grid-cols-3">
+          <div className={`mt-16 grid gap-6 ${columnas(galerias.length)}`}>
             {galerias.map((g) => (
               <Link
                 key={g.slug}

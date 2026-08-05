@@ -5,15 +5,14 @@
  * que el fotógrafo entregue su usuario ni pasar por OAuth. La clave se pone en
  * la variable de entorno SMUGMUG_API_KEY.
  *
- * Cada galería del sitio se asocia a un álbum de SmugMug en `galerias` (abajo),
- * usando la clave del álbum que aparece en su URL:
- *   https://vladimir.smugmug.com/Casamientos/n-ABC123  ->  "ABC123"
+ * Cada galería del sitio se asocia a uno o varios álbumes mediante una variable
+ * de entorno (ver `variableDeGaleria`), donde va la clave que devuelve
+ * `tools/listar-albumes.mjs`.
  *
- * Mientras no haya clave configurada, la web funciona igual y muestra fotos de
- * ejemplo, así se puede ver y aprobar el diseño antes de conectar la cuenta.
+ * Mientras no haya clave configurada, la web funciona igual y las galerías
+ * muestran su estado de "muy pronto", así se puede trabajar el diseño antes de
+ * conectar la cuenta.
  */
-
-import { tiposDeEvento } from "./site";
 
 const API = "https://api.smugmug.com/api/v2";
 
@@ -28,27 +27,22 @@ export type Foto = {
   alto: number;
 };
 
-export type Galeria = {
-  slug: string;
-  nombre: string;
-  /** Clave del álbum en SmugMug (la parte después de "n-" en la URL). */
-  albumKey?: string;
-  fotos: Foto[];
-};
+/**
+ * La variable de entorno que guarda el álbum de una galería. Se deduce del
+ * slug para que agregar un tipo de evento no obligue a tocar este archivo:
+ *   "15-anios" -> SMUGMUG_ALBUM_15_ANIOS
+ */
+export function variableDeGaleria(slug: string) {
+  return `SMUGMUG_ALBUM_${slug.toUpperCase().replace(/-/g, "_")}`;
+}
 
 /**
- * Álbumes de SmugMug asociados a cada galería. Una galería puede juntar varios
- * álbumes: se escriben separados por coma y las fotos se muestran mezcladas.
+ * Claves de los álbumes de una galería. Puede tener varios: se escriben
+ * separados por coma y las fotos se muestran mezcladas.
  */
-export const albumesPorGaleria: Record<string, string | undefined> = {
-  "15-anios": process.env.SMUGMUG_ALBUM_15,
-  casamientos: process.env.SMUGMUG_ALBUM_CASAMIENTOS,
-  "eventos-empresariales": process.env.SMUGMUG_ALBUM_EMPRESAS,
-};
-
-/** "abc, def" -> ["abc", "def"] (tolera espacios y comas de más). */
-function clavesDe(valor?: string): string[] {
-  return (valor ?? "").split(",").map((c) => c.trim()).filter(Boolean);
+function clavesDeGaleria(slug: string): string[] {
+  const valor = process.env[variableDeGaleria(slug)] ?? "";
+  return valor.split(",").map((c) => c.trim()).filter(Boolean);
 }
 
 export const hayApi = () => Boolean(process.env.SMUGMUG_API_KEY);
@@ -156,7 +150,7 @@ export async function fotosDelAlbum(albumKey: string, limite = 60): Promise<Foto
  * seguido del siguiente.
  */
 export async function fotosDeGaleria(slug: string, limite = 60): Promise<Foto[]> {
-  const claves = clavesDe(albumesPorGaleria[slug]);
+  const claves = clavesDeGaleria(slug);
   if (!hayApi() || claves.length === 0) return [];
 
   const porAlbum = await Promise.all(
@@ -179,10 +173,3 @@ export async function fotosDeGaleria(slug: string, limite = 60): Promise<Foto[]>
   }
   return mezcladas;
 }
-
-/** Las galerías del sitio, con el nombre lindo de cada tipo de evento. */
-export const galerias = tiposDeEvento.map((t) => ({
-  slug: t.slug,
-  nombre: t.nombre,
-  albumKey: albumesPorGaleria[t.slug],
-}));

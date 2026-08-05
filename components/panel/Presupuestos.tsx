@@ -18,9 +18,13 @@ type FotoSugerida = { id: string; miniatura: string; grande: string };
 /**
  * Tipos de evento del presupuesto. El "slug" es la galería de la que se
  * proponen fotos para la portada; "Otro" no tiene galería asociada.
+ *
+ * Van en singular porque el presupuesto es de un evento puntual, por eso no se
+ * toman directamente de `tiposDeEvento`. Si se agrega uno allá, sumarlo acá.
  */
 const OPCIONES_EVENTO = [
   { nombre: "15 años", slug: "15-anios" },
+  { nombre: "Sesión de fotos", slug: "sesiones" },
   { nombre: "Casamiento", slug: "casamientos" },
   { nombre: "Evento empresarial", slug: "eventos-empresariales" },
   { nombre: "Otro", slug: "" },

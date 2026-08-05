@@ -36,11 +36,30 @@ export const site = {
   },
 } as const;
 
-/** Tipos de evento que se ofrecen (se usan en galerías, formularios y packs). */
+/**
+ * Tipos de evento que se ofrecen. Es el eje del sitio: de acá salen las
+ * galerías, las opciones de los formularios y las portadas del panel.
+ *
+ * El álbum de SmugMug de cada uno se configura en una variable de entorno que
+ * se llama igual que el slug: "15-anios" -> SMUGMUG_ALBUM_15_ANIOS.
+ * Sumar un tipo nuevo es agregarlo acá y cargar su variable.
+ */
 export const tiposDeEvento = [
   { slug: "15-anios", nombre: "15 años" },
+  { slug: "sesiones", nombre: "Sesiones" },
   { slug: "casamientos", nombre: "Casamientos" },
   { slug: "eventos-empresariales", nombre: "Eventos empresariales" },
 ] as const;
 
 export type TipoDeEvento = (typeof tiposDeEvento)[number]["slug"];
+
+/**
+ * Columnas de la grilla de galerías según cuántas haya. Tailwind necesita las
+ * clases escritas enteras, por eso es un mapa y no se arma con plantillas.
+ */
+export function columnas(cantidad: number) {
+  if (cantidad <= 1) return "max-w-md mx-auto";
+  if (cantidad === 2) return "sm:grid-cols-2 max-w-3xl mx-auto";
+  if (cantidad === 3) return "md:grid-cols-3";
+  return "sm:grid-cols-2 lg:grid-cols-4";
+}

@@ -5,7 +5,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { Logo } from "@/components/Logo";
 import { Marco } from "@/components/Marco";
 import { IconoFlecha, IconoInstagram, IconoWhatsapp } from "@/components/Iconos";
-import { site, tiposDeEvento } from "@/lib/site";
+import { columnas, site, tiposDeEvento } from "@/lib/site";
 import { grupos } from "@/lib/packs";
 import {
   automaticaDeGaleria,
@@ -22,14 +22,20 @@ export default async function Inicio() {
 
   // Manda lo que el fotógrafo eligió en el panel; si no eligió, se busca sola:
   // vertical para las tarjetas, que son verticales.
-  const destacadas = tiposDeEvento.map((t) => {
-    const elegida = elegidas.galerias[t.slug];
-    return {
-      ...t,
-      foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
-      posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
-    };
-  });
+  //
+  // Las galerías que todavía no tienen álbum cargado no se muestran: una
+  // tarjeta vacía hace ver la web a medio terminar. Vuelven solas en cuanto
+  // se les carga el álbum.
+  const destacadas = tiposDeEvento
+    .filter((t) => (fotosPorGaleria[t.slug] ?? []).length > 0)
+    .map((t) => {
+      const elegida = elegidas.galerias[t.slug];
+      return {
+        ...t,
+        foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
+        posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
+      };
+    });
 
   // El fondo de la portada es ancho: sin elección se usa una apaisada, porque
   // una vertical quedaría recortada por el medio.
@@ -105,7 +111,9 @@ export default async function Inicio() {
             bajada="Una selección de trabajos recientes."
           />
 
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
+          {/* Las columnas siguen a la cantidad de galerías: con tres fijas y
+              solo dos cargadas quedaba un hueco al costado. */}
+          <div className={`mt-14 grid gap-6 ${columnas(destacadas.length)}`}>
             {destacadas.map((g) => (
               <Link
                 key={g.slug}
