@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Logo } from "@/components/Logo";
 import { generarPresupuesto, PROPORCION_PORTADA } from "@/lib/pdf";
 import {
   FOCO_POR_DEFECTO,
@@ -69,11 +68,11 @@ export function Presupuestos({
   const archivoRef = useRef<HTMLInputElement>(null);
 
   // Rehace el recorte cada vez que cambia la foto o el encuadre.
+  //
+  // Cuando no hay foto no hay nada que hacer: el recorte ya lo limpia
+  // `quitarPortada`, que es el único lugar donde la foto se vacía.
   useEffect(() => {
-    if (!fotoEntera) {
-      setPortada("");
-      return;
-    }
+    if (!fotoEntera) return;
     let vigente = true;
     recortarParaPortada(fotoEntera, PROPORCION_PORTADA, foco)
       .then((recorte) => {
@@ -90,11 +89,14 @@ export function Presupuestos({
   const galeriaDelEvento =
     OPCIONES_EVENTO.find((o) => o.nombre === tipoEvento)?.slug ?? "";
 
+  // Las de la galería que corresponde al evento elegido. Si el evento no tiene
+  // galería, no se muestra ninguna aunque queden cargadas de una elección previa.
+  const sugeridasVisibles = galeriaDelEvento ? sugeridas : [];
+
+  // "Otro" no tiene galería asociada, así que no se propone ninguna foto. No
+  // hace falta vaciar el estado: alcanza con no mostrarlo (ver `sugeridasVisibles`).
   useEffect(() => {
-    if (!galeriaDelEvento) {
-      setSugeridas([]);
-      return;
-    }
+    if (!galeriaDelEvento) return;
     let vigente = true;
     fetch(`/api/panel/fotos?galeria=${galeriaDelEvento}`)
       .then((r) => (r.ok ? r.json() : { fotos: [] }))
@@ -501,9 +503,9 @@ export function Presupuestos({
                 </p>
               )}
 
-              {sugeridas.length > 0 && (
+              {sugeridasVisibles.length > 0 && (
                 <div className="mb-4 grid grid-cols-4 gap-2 sm:grid-cols-6">
-                  {sugeridas.map((foto) => (
+                  {sugeridasVisibles.map((foto) => (
                     <button
                       key={foto.id}
                       type="button"
