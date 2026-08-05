@@ -82,8 +82,8 @@ export default async function Inicio() {
             <p className="sombra-texto max-w-2xl text-base leading-relaxed text-texto sm:text-lg">
               Creo que las mejores fotos aparecen cuando la gente se divierte,
               se ríe y se olvida de que hay una cámara. Mi trabajo es
-              acompañarlos durante todo el día para que ustedes solo se
-              preocupen por disfrutar.
+              acompañarlos durante su evento para que ustedes solo se preocupen
+              por disfrutar.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">

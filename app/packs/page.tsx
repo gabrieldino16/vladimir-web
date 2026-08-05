@@ -78,8 +78,7 @@ export default function Packs() {
           {/* ------------------------------------------------ formas de pago */}
           <section className="mt-24">
             <Encabezado
-              volanta="Formas de pago"
-              titulo="Cómo se abona"
+              titulo="Formas de pago"
               bajada="Dos maneras de contratar, según lo que te convenga."
             />
 

@@ -170,7 +170,7 @@ export const formasDePago = [
   {
     titulo: "Con seña",
     detalle:
-      "Con el 30% reservás la fecha y te queda congelado el precio: no lo afectan los aumentos posteriores. El saldo se abona en cuotas fijas, sin interés, hasta el día del evento.",
+      "Con la seña del 30% reservás la fecha y congelás el precio: no lo afectan los aumentos posteriores. El saldo se abona en cuotas fijas, sin interés, hasta el día del evento.",
   },
   {
     titulo: "Al contado",
