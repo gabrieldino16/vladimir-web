@@ -10,7 +10,7 @@ export const site = {
     "Fotografía y video para 15 años, casamientos y eventos empresariales en Rosario y alrededores.",
 
   // Se completa cuando esté comprado el dominio (se usa para SEO y el email).
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://vladimirkrauchuk.com",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://vkmultimedia.com.ar",
 
   contacto: {
     instagram: "vladimirkrau.ph",
