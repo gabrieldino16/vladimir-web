@@ -13,8 +13,8 @@ export const site = {
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://vkmultimedia.com.ar",
 
   contacto: {
-    instagram: "vladimirkrau.ph",
-    instagramUrl: "https://instagram.com/vladimirkrau.ph",
+    instagram: "vk.multimedia",
+    instagramUrl: "https://www.instagram.com/vk.multimedia",
     whatsapp: "5493415783412",
     whatsappTexto: "+54 9 341 578-3412",
     whatsappUrl:

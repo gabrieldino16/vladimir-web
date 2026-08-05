@@ -7,6 +7,7 @@
  */
 import { jsPDF } from "jspdf";
 import type { Item } from "./packs";
+import { site } from "./site";
 
 export type DatosPresupuesto = {
   cliente: string;
@@ -213,12 +214,14 @@ export function generarPresupuesto(datos: DatosPresupuesto) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(...DORADO);
-    doc.text("@vladimirkrau.ph", MARGEN, alto - 10);
+    // Los datos salen de site.ts: escritos acá a mano se quedan viejos cuando
+    // cambia una red o un telefono, y el presupuesto es lo que ve el cliente.
+    doc.text(`@${site.contacto.instagram}`, MARGEN, alto - 10);
 
     doc.setTextColor(...TENUE);
-    doc.text("+54 9 341 578-3412", ancho / 2, alto - 10, { align: "center" });
+    doc.text(site.contacto.whatsappTexto, ancho / 2, alto - 10, { align: "center" });
     doc.text(
-      hojas > 1 ? `${hoja} / ${hojas}` : "Rosario, Santa Fe",
+      hojas > 1 ? `${hoja} / ${hojas}` : site.contacto.ciudad,
       ancho - MARGEN,
       alto - 10,
       { align: "right" },
