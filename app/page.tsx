@@ -6,25 +6,37 @@ import { Logo } from "@/components/Logo";
 import { Marco } from "@/components/Marco";
 import { IconoFlecha, IconoInstagram, IconoWhatsapp } from "@/components/Iconos";
 import { site, tiposDeEvento } from "@/lib/site";
-import { esApaisada, fotosDeGaleria } from "@/lib/smugmug";
 import { grupos } from "@/lib/packs";
+import {
+  automaticaDeGaleria,
+  automaticaDelInicio,
+  fotosDeTodasLasGalerias,
+  resolverPortadas,
+} from "@/lib/portadas-servidor";
+import { aPosicionCss } from "@/lib/portadas";
 
 export default async function Inicio() {
-  // Se traen varias de cada galería para poder elegir según la forma de la foto
-  // (vacío mientras no haya API key).
-  const galerias = await Promise.all(
-    tiposDeEvento.map(async (t) => ({ ...t, fotos: await fotosDeGaleria(t.slug, 12) })),
-  );
+  // Vacío mientras no haya API key: la web funciona igual.
+  const fotosPorGaleria = await fotosDeTodasLasGalerias();
+  const elegidas = await resolverPortadas(fotosPorGaleria);
 
-  // Las tarjetas son verticales: se prefiere una foto vertical para cada una.
-  const destacadas = galerias.map((g) => ({
-    ...g,
-    foto: g.fotos.find((f) => !esApaisada(f)) ?? g.fotos[0],
-  }));
+  // Manda lo que el fotógrafo eligió en el panel; si no eligió, se busca sola:
+  // vertical para las tarjetas, que son verticales.
+  const destacadas = tiposDeEvento.map((t) => {
+    const elegida = elegidas.galerias[t.slug];
+    return {
+      ...t,
+      foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
+      posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
+    };
+  });
 
-  // El fondo de la portada es ancho: una foto vertical se vería recortada por
-  // el medio, así que sólo se usa una apaisada.
-  const fotoPortada = galerias.flatMap((g) => g.fotos).find(esApaisada);
+  // El fondo de la portada es ancho: sin elección se usa una apaisada, porque
+  // una vertical quedaría recortada por el medio.
+  const fotoPortada = elegidas.inicio?.foto ?? automaticaDelInicio(fotosPorGaleria);
+  const posicionPortada = elegidas.inicio
+    ? aPosicionCss(elegidas.inicio.encuadre)
+    : undefined;
 
   return (
     <>
@@ -41,6 +53,7 @@ export default async function Inicio() {
               conIcono={false}
               medida="grande"
               sizes="100vw"
+              posicion={posicionPortada}
               prioridad
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-negro" />
@@ -100,7 +113,7 @@ export default async function Inicio() {
                 className="group relative aspect-[3/4] overflow-hidden border border-dorado/15"
               >
                 <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
-                  <Marco foto={g.foto} etiqueta={g.nombre} />
+                  <Marco foto={g.foto} etiqueta={g.nombre} posicion={g.posicion} />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-6">

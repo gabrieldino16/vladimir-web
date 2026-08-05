@@ -6,7 +6,12 @@ import { Encabezado } from "@/components/Encabezado";
 import { Marco } from "@/components/Marco";
 import { IconoFlecha } from "@/components/Iconos";
 import { tiposDeEvento } from "@/lib/site";
-import { fotosDeGaleria } from "@/lib/smugmug";
+import {
+  automaticaDeGaleria,
+  fotosDeTodasLasGalerias,
+  resolverPortadas,
+} from "@/lib/portadas-servidor";
+import { aPosicionCss } from "@/lib/portadas";
 
 export const metadata: Metadata = {
   title: "Galerías",
@@ -15,12 +20,19 @@ export const metadata: Metadata = {
 };
 
 export default async function Galerias() {
-  const galerias = await Promise.all(
-    tiposDeEvento.map(async (t) => ({
+  // Las portadas son las mismas que muestra el inicio: las elige el fotógrafo
+  // desde el panel y, si no eligió, se buscan solas.
+  const fotosPorGaleria = await fotosDeTodasLasGalerias();
+  const elegidas = await resolverPortadas(fotosPorGaleria);
+
+  const galerias = tiposDeEvento.map((t) => {
+    const elegida = elegidas.galerias[t.slug];
+    return {
       ...t,
-      foto: (await fotosDeGaleria(t.slug, 1))[0],
-    })),
-  );
+      foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
+      posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
+    };
+  });
 
   return (
     <>
@@ -41,7 +53,7 @@ export default async function Galerias() {
                 className="group relative aspect-[3/4] overflow-hidden border border-dorado/15"
               >
                 <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
-                  <Marco foto={g.foto} etiqueta={g.nombre} />
+                  <Marco foto={g.foto} etiqueta={g.nombre} posicion={g.posicion} />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-6">

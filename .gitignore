@@ -43,3 +43,6 @@ next-env.d.ts
 
 # variables de entorno locales
 .env.local
+
+# Preferencias guardadas desde el panel (en produccion van a Vercel Blob).
+datos/

@@ -195,33 +195,8 @@ export function Presupuestos({
     });
   }
 
-  async function salir() {
-    await fetch("/api/panel/login", { method: "DELETE" });
-    window.location.reload();
-  }
-
   return (
-    <main className="flex-1 px-5 py-10">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-10 flex items-center justify-between border-b border-dorado/20 pb-6">
-          <div className="flex items-center gap-4">
-            <Logo className="h-11 text-dorado" />
-            <div>
-              <h1 className="titulo text-2xl">Presupuestos</h1>
-              <p className="text-xs tracking-[0.2em] text-texto-tenue uppercase">
-                Panel privado
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={salir}
-            className="text-xs tracking-[0.2em] text-texto-tenue uppercase transition-colors hover:text-dorado"
-          >
-            Salir
-          </button>
-        </header>
-
-        <div className="grid gap-10 lg:grid-cols-[1fr_360px]">
+    <div className="grid gap-10 lg:grid-cols-[1fr_360px]">
           {/* ------------------------------------------------------ formulario */}
           <div className="space-y-8">
             <Bloque titulo="Datos del cliente">
@@ -544,9 +519,7 @@ export function Presupuestos({
               </div>
             </div>
           </aside>
-        </div>
-      </div>
-    </main>
+    </div>
   );
 }
 

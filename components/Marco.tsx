@@ -14,6 +14,7 @@ export function Marco({
   conIcono = true,
   medida = "miniatura",
   sizes = "(max-width: 768px) 100vw, 33vw",
+  posicion,
 }: {
   foto?: Foto;
   etiqueta?: string;
@@ -29,6 +30,12 @@ export function Marco({
    * enorme que además agranda la foto de origen y la deja borrosa.
    */
   sizes?: string;
+  /**
+   * Qué parte de la foto queda a la vista cuando el recuadro la recorta, en el
+   * formato de `object-position` ("50% 35%"). Sin esto queda centrada, que en
+   * una foto de personas suele cortar las caras.
+   */
+  posicion?: string;
 }) {
   if (foto) {
     return (
@@ -39,6 +46,7 @@ export function Marco({
         height={foto.alto}
         priority={prioridad}
         sizes={sizes}
+        style={posicion ? { objectPosition: posicion } : undefined}
         className={`h-full w-full object-cover ${className}`}
       />
     );
