@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { Marco } from "@/components/Marco";
 import { Formulario } from "@/components/Formulario";
-import { IconoRegalo } from "@/components/Iconos";
+import { IconoFlecha, IconoRegalo } from "@/components/Iconos";
 import { site } from "@/lib/site";
 import {
   automaticaDelInicio,
@@ -81,6 +82,16 @@ export default async function Beneficio() {
             <p className="sombra-texto mt-2 text-lg text-texto sm:text-xl">
               {site.beneficio.bajada}
             </p>
+
+            {/* La página no tiene menú, así que este es el único camino para
+                ver el trabajo antes de dejar los datos. */}
+            <Link
+              href="/galerias"
+              className="group mt-9 inline-flex items-center justify-center gap-2 border border-dorado px-9 py-3.5 text-sm tracking-[0.2em] text-dorado uppercase transition-colors hover:bg-dorado hover:text-negro"
+            >
+              Ver mis trabajos
+              <IconoFlecha className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
 
             <div className="filete mx-auto my-10 w-56" />
 
