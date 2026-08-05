@@ -47,8 +47,10 @@ export const site = {
 export const tiposDeEvento = [
   { slug: "15-anios", nombre: "15 años" },
   { slug: "sesiones", nombre: "Sesiones" },
+  { slug: "graduaciones", nombre: "Graduaciones" },
+  { slug: "eventos-empresariales", nombre: "Empresariales" },
+  { slug: "videos", nombre: "Videos" },
   { slug: "casamientos", nombre: "Casamientos" },
-  { slug: "eventos-empresariales", nombre: "Eventos empresariales" },
 ] as const;
 
 export type TipoDeEvento = (typeof tiposDeEvento)[number]["slug"];
@@ -60,6 +62,8 @@ export type TipoDeEvento = (typeof tiposDeEvento)[number]["slug"];
 export function columnas(cantidad: number) {
   if (cantidad <= 1) return "max-w-md mx-auto";
   if (cantidad === 2) return "sm:grid-cols-2 max-w-3xl mx-auto";
-  if (cantidad === 3) return "md:grid-cols-3";
-  return "sm:grid-cols-2 lg:grid-cols-4";
+  if (cantidad === 4) return "sm:grid-cols-2 lg:grid-cols-4";
+  // Tres columnas también para cinco y seis: reparte 3+2 y 3+3, en vez de
+  // dejar una tarjeta sola en la última fila.
+  return "sm:grid-cols-2 lg:grid-cols-3";
 }

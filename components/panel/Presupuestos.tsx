@@ -28,8 +28,9 @@ type Extra = { id: string; titulo: string; detalle: string; precio: number };
 const OPCIONES_EVENTO = [
   { nombre: "15 años", slug: "15-anios" },
   { nombre: "Sesión de fotos", slug: "sesiones" },
-  { nombre: "Casamiento", slug: "casamientos" },
+  { nombre: "Graduación", slug: "graduaciones" },
   { nombre: "Evento empresarial", slug: "eventos-empresariales" },
+  { nombre: "Casamiento", slug: "casamientos" },
   { nombre: "Otro", slug: "" },
 ] as const;
 

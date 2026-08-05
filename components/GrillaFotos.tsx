@@ -55,6 +55,18 @@ export function GrillaFotos({ fotos }: { fotos: Foto[] }) {
               sizes="(max-width: 768px) 50vw, 33vw"
             />
             <span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
+
+            {/* En los videos se muestra la portada del video y se avisa que
+                se puede reproducir. */}
+            {foto.video && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-dorado/80 bg-black/50 backdrop-blur transition-transform group-hover:scale-110">
+                  <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6 fill-dorado">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -80,16 +92,32 @@ export function GrillaFotos({ fotos }: { fotos: Foto[] }) {
           <Flecha lado="izq" onClick={() => mover(-1)} />
           <Flecha lado="der" onClick={() => mover(1)} />
 
-          <Image
-            src={fotos[abierta].grande}
-            alt={fotos[abierta].titulo || "Fotografía"}
-            width={fotos[abierta].ancho}
-            height={fotos[abierta].alto}
-            className="max-h-[88vh] w-auto object-contain"
-            sizes="(max-width: 1024px) 100vw, 85vw"
-            onClick={(e) => e.stopPropagation()}
-            priority
-          />
+          {fotos[abierta].video ? (
+            /* El archivo se baja recién cuando la persona le da play: son
+               videos largos y pesados, no se pueden cargar de entrada. */
+            <video
+              key={fotos[abierta].id}
+              src={fotos[abierta].video}
+              poster={fotos[abierta].grande}
+              controls
+              autoPlay
+              preload="none"
+              playsInline
+              className="max-h-[88vh] w-auto"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <Image
+              src={fotos[abierta].grande}
+              alt={fotos[abierta].titulo || "Fotografía"}
+              width={fotos[abierta].ancho}
+              height={fotos[abierta].alto}
+              className="max-h-[88vh] w-auto object-contain"
+              sizes="(max-width: 1024px) 100vw, 85vw"
+              onClick={(e) => e.stopPropagation()}
+              priority
+            />
+          )}
 
           <span className="absolute bottom-5 text-xs tracking-[0.3em] text-texto-tenue">
             {abierta + 1} / {fotos.length}

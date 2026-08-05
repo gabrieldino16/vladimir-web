@@ -25,6 +25,12 @@ export type Foto = {
   grande: string;
   ancho: number;
   alto: number;
+  /**
+   * Si es un video, la dirección del archivo. La miniatura sigue siendo una
+   * imagen —el cuadro de portada—, así que en las grillas se ve igual que una
+   * foto y recién al abrirlo aparece el reproductor.
+   */
+  video?: string;
 };
 
 /**
@@ -63,7 +69,10 @@ type ImagenSmugMug = {
   ArchivedUri?: string;
   OriginalWidth?: number;
   OriginalHeight?: number;
-  Uris?: { ImageSizes?: { Uri: string } };
+  Uris?: {
+    ImageSizes?: { Uri: string };
+    LargestVideo?: { Uri: string };
+  };
 };
 
 /**
@@ -135,25 +144,50 @@ export async function fotosDelAlbum(albumKey: string, limite = 60): Promise<Foto
     if (tanda.length < cuantas) break; // no hay más
   }
 
-  return imagenes
-    .filter((img) => !img.IsVideo && img.ThumbnailUrl)
-    .map((img) => {
-      const ancho = img.OriginalWidth ?? 1600;
-      const alto = img.OriginalHeight ?? 1067;
-      const ladoOriginal = Math.max(ancho, alto);
-      return {
-        id: img.ImageKey,
-        titulo: img.Title || img.Caption || img.FileName || "",
-        // En una grilla cada foto ocupa unos 400 px de ancho; en una pantalla
-        // de alta densidad eso son 800 px reales. Como la medida se mide por el
-        // lado largo, hay que pedir 1200 para que el ancho llegue a 800.
-        miniatura: urlEnMedida(img.ThumbnailUrl!, medidaPara(1200, ladoOriginal)),
-        // El visor y el fondo de la portada ocupan la pantalla entera.
-        grande: urlEnMedida(img.ThumbnailUrl!, medidaPara(2048, ladoOriginal)),
-        ancho,
-        alto,
-      };
-    });
+  const utiles = imagenes.filter((img) => img.ThumbnailUrl);
+
+  // La dirección del video hay que pedirla aparte: no se puede deducir de la
+  // miniatura porque cada archivo lleva su propia firma.
+  const videos = new Map(
+    await Promise.all(
+      utiles
+        .filter((img) => img.IsVideo && img.Uris?.LargestVideo?.Uri)
+        .map(
+          async (img) =>
+            [img.ImageKey, await urlDelVideo(img.Uris!.LargestVideo!.Uri)] as const,
+        ),
+    ),
+  );
+
+  return utiles.map((img) => {
+    const ancho = img.OriginalWidth ?? 1600;
+    const alto = img.OriginalHeight ?? 1067;
+    const ladoOriginal = Math.max(ancho, alto);
+    return {
+      id: img.ImageKey,
+      titulo: img.Title || img.Caption || img.FileName || "",
+      // En una grilla cada foto ocupa unos 400 px de ancho; en una pantalla
+      // de alta densidad eso son 800 px reales. Como la medida se mide por el
+      // lado largo, hay que pedir 1200 para que el ancho llegue a 800.
+      miniatura: urlEnMedida(img.ThumbnailUrl!, medidaPara(1200, ladoOriginal)),
+      // El visor y el fondo de la portada ocupan la pantalla entera.
+      grande: urlEnMedida(img.ThumbnailUrl!, medidaPara(2048, ladoOriginal)),
+      ancho,
+      alto,
+      video: videos.get(img.ImageKey) || undefined,
+    };
+  });
+}
+
+/** Resuelve la dirección del archivo de video de un elemento del álbum. */
+async function urlDelVideo(uri: string): Promise<string> {
+  try {
+    const datos = await pedir(`https://api.smugmug.com${uri}`);
+    return datos?.Response?.LargestVideo?.Url ?? "";
+  } catch (error) {
+    console.error("No se pudo resolver el video:", error);
+    return "";
+  }
 }
 
 /**
