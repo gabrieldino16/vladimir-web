@@ -82,9 +82,11 @@ export default async function Inicio() {
 
             <div className="filete my-9 w-56" />
 
-            <p className="sombra-texto max-w-xl text-base leading-relaxed text-texto sm:text-lg">
-              Momentos que no se repiten, contados con imágenes que emocionan.
-              15 años, casamientos y eventos empresariales.
+            <p className="sombra-texto max-w-2xl text-base leading-relaxed text-texto sm:text-lg">
+              Creo que las mejores fotos aparecen cuando la gente se divierte,
+              se ríe y se olvida de que hay una cámara. Mi trabajo es
+              acompañarlos durante todo el día para que ustedes solo se
+              preocupen por disfrutar.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
