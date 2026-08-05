@@ -37,7 +37,15 @@ export function GrillaFotos({ fotos }: { fotos: Foto[] }) {
 
   return (
     <>
-      <div className="columns-2 gap-4 md:columns-3 [&>*]:mb-4">
+      {/* Grilla y no columnas CSS: las columnas se llenan hacia abajo, asi que
+          la segunda foto caia debajo de la primera en vez de al lado. Muchas
+          galerias son secuencias de una misma sesion y hay que poder leerlas
+          de izquierda a derecha.
+
+          Con items-start cada foto conserva su proporcion en vez de estirarse
+          hasta el alto de la fila: quedan escalones debajo de las mas bajas,
+          pero ninguna se recorta. */}
+      <div className="grid grid-cols-2 items-start gap-4 md:grid-cols-3">
         {fotos.map((foto, i) => (
           <button
             key={foto.id}
