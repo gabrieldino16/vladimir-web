@@ -6,7 +6,8 @@
  * refrescan solas.
  */
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { ETIQUETA } from "@/lib/almacen";
 import { haySesion } from "@/lib/auth";
 import { guardarPortadas, leerPortadas } from "@/lib/portadas-servidor";
 import type { Eleccion, Portadas } from "@/lib/portadas";
@@ -94,6 +95,9 @@ export async function PUT(pedido: Request) {
     );
   }
 
+  // Primero la lectura de lo guardado, después las páginas que la usan: si
+  // fuera al revés se rearmarían con el valor viejo todavía en caché.
+  revalidateTag(ETIQUETA, "max");
   revalidatePath("/");
   revalidatePath("/galerias");
   revalidatePath(`/${site.rutaBeneficio}`);

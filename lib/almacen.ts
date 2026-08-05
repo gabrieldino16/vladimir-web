@@ -18,6 +18,12 @@ import path from "path";
 const CARPETA = path.join(process.cwd(), "datos");
 const BLOB_API = "https://blob.vercel-storage.com";
 
+/**
+ * Etiqueta de caché de lo guardado. Al escribir desde el panel se la limpia,
+ * para que el cambio se vea enseguida sin tener que leer en cada visita.
+ */
+export const ETIQUETA = "almacen";
+
 const hayBlob = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 
 /** Lee un archivo guardado. Devuelve null si todavía no existe. */
@@ -55,7 +61,10 @@ async function leerDeBlob(nombre: string) {
   const identificador = process.env.BLOB_READ_WRITE_TOKEN!.split("_")[3];
   const respuesta = await fetch(
     `https://${identificador}.public.blob.vercel-storage.com/${nombre}`,
-    { cache: "no-store" },
+    // Se guarda en caché igual que el resto de los datos de la página: pedirlo
+    // en cada visita obligaría a armar la web entera de nuevo cada vez. Cuando
+    // el panel guarda algo limpia ETIQUETA y la lectura se rehace al toque.
+    { next: { revalidate: 3600, tags: [ETIQUETA] } },
   );
   return respuesta.ok ? await respuesta.text() : null;
 }
