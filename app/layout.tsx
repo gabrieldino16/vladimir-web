@@ -29,6 +29,10 @@ export const metadata: Metadata = {
     description: site.descripcion,
     type: "website",
     locale: "es_AR",
+    // La dirección del sitio: es lo que usan WhatsApp y las redes al mostrar
+    // la vista previa cuando alguien comparte el enlace o escanea el QR.
+    url: site.url,
+    siteName: site.nombre,
   },
 };
 
