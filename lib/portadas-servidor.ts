@@ -9,7 +9,14 @@
 import { leer, guardar } from "./almacen";
 import { esApaisada, fotosDeGaleria, type Foto } from "./smugmug";
 import { tiposDeEvento } from "./site";
-import { PORTADAS_VACIAS, type Eleccion, type Encuadre, type Portadas } from "./portadas";
+import {
+  ENCUADRE_POR_DEFECTO,
+  PORTADAS_VACIAS,
+  aPosicionCss,
+  type Eleccion,
+  type Encuadre,
+  type Portadas,
+} from "./portadas";
 
 const ARCHIVO = "portadas.json";
 
@@ -82,4 +89,53 @@ export function automaticaDelInicio(fotosPorGaleria: Record<string, Foto[]>) {
 /** Para las tarjetas, que son verticales, se prefiere una foto vertical. */
 export function automaticaDeGaleria(fotos: Foto[]) {
   return fotos.find((f) => !esApaisada(f)) ?? fotos[0];
+}
+
+/** Una foto de la rotación, ya con el encuadre resuelto para el navegador. */
+export type FotoDePortada = {
+  foto: Foto;
+  posicion?: string;
+  posicionMovil?: string;
+};
+
+/**
+ * Toma unas pocas fotos repartidas a lo largo de la lista, en vez de las
+ * primeras. Los álbumes son secuencias de una misma sesión: las primeras cinco
+ * serían casi la misma foto y la rotación no se notaría.
+ */
+function repartir(fotos: Foto[], cantidad: number): Foto[] {
+  if (fotos.length <= cantidad) return fotos;
+  const paso = fotos.length / cantidad;
+  return Array.from({ length: cantidad }, (_, i) => fotos[Math.floor(i * paso)]);
+}
+
+/**
+ * Arma la lista de fotos que se van turnando en una portada.
+ *
+ * La elegida por el fotógrafo va primera y conserva su encuadre; las demás
+ * usan el de por defecto, que muestra la franja de arriba.
+ */
+export function armarRotacion(
+  candidatas: Foto[],
+  elegida: PortadaResuelta | undefined,
+  cantidad = 5,
+): FotoDePortada[] {
+  const porDefecto = aPosicionCss(ENCUADRE_POR_DEFECTO);
+  const resto = repartir(
+    candidatas.filter((f) => f.id !== elegida?.foto.id),
+    elegida ? cantidad - 1 : cantidad,
+  ).map((foto) => ({ foto, posicion: porDefecto }));
+
+  if (!elegida) return resto;
+
+  return [
+    {
+      foto: elegida.foto,
+      posicion: aPosicionCss(elegida.encuadre),
+      posicionMovil: elegida.encuadreMovil
+        ? aPosicionCss(elegida.encuadreMovil)
+        : undefined,
+    },
+    ...resto,
+  ];
 }

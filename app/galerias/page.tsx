@@ -3,15 +3,15 @@ import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Encabezado } from "@/components/Encabezado";
-import { Marco } from "@/components/Marco";
+import { PortadaRotativa } from "@/components/PortadaRotativa";
 import { IconoFlecha } from "@/components/Iconos";
 import { columnas, tiposDeEvento } from "@/lib/site";
 import {
-  automaticaDeGaleria,
+  armarRotacion,
   fotosDeTodasLasGalerias,
   resolverPortadas,
 } from "@/lib/portadas-servidor";
-import { aPosicionCss } from "@/lib/portadas";
+import { esApaisada } from "@/lib/smugmug";
 
 export const metadata: Metadata = {
   title: "Galerías",
@@ -25,15 +25,19 @@ export default async function Galerias() {
   const fotosPorGaleria = await fotosDeTodasLasGalerias();
   const elegidas = await resolverPortadas(fotosPorGaleria);
 
-  // Igual que en el inicio: las galerías sin álbum cargado no se listan.
+  // Igual que en el inicio: las galerías sin álbum cargado no se listan, y
+  // cada tarjeta va cambiando de foto mientras se mira la página.
   const galerias = tiposDeEvento
     .filter((t) => (fotosPorGaleria[t.slug] ?? []).length > 0)
     .map((t) => {
-      const elegida = elegidas.galerias[t.slug];
+      const fotos = fotosPorGaleria[t.slug] ?? [];
+      const verticales = fotos.filter((f) => !esApaisada(f));
       return {
         ...t,
-        foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
-        posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
+        rotacion: armarRotacion(
+          verticales.length > 0 ? verticales : fotos,
+          elegidas.galerias[t.slug],
+        ),
       };
     });
 
@@ -49,14 +53,18 @@ export default async function Galerias() {
           />
 
           <div className={`mt-16 grid gap-6 ${columnas(galerias.length)}`}>
-            {galerias.map((g) => (
+            {galerias.map((g, indice) => (
               <Link
                 key={g.slug}
                 href={`/galerias/${g.slug}`}
                 className="group relative aspect-[3/4] overflow-hidden border border-dorado/15"
               >
                 <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
-                  <Marco foto={g.foto} etiqueta={g.nombre} posicion={g.posicion} />
+                  <PortadaRotativa
+                    fotos={g.rotacion}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    retraso={indice * 1800}
+                  />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-6">

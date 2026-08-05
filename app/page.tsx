@@ -3,25 +3,24 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Encabezado } from "@/components/Encabezado";
 import { Logo } from "@/components/Logo";
-import { Marco } from "@/components/Marco";
+import { PortadaRotativa } from "@/components/PortadaRotativa";
 import { IconoFlecha, IconoInstagram, IconoWhatsapp } from "@/components/Iconos";
 import { columnas, site, tiposDeEvento } from "@/lib/site";
 import { grupos } from "@/lib/packs";
 import {
-  automaticaDeGaleria,
-  automaticaDelInicio,
+  armarRotacion,
   fotosDeTodasLasGalerias,
   resolverPortadas,
 } from "@/lib/portadas-servidor";
-import { aPosicionCss } from "@/lib/portadas";
+import { esApaisada } from "@/lib/smugmug";
 
 export default async function Inicio() {
   // Vacío mientras no haya API key: la web funciona igual.
   const fotosPorGaleria = await fotosDeTodasLasGalerias();
   const elegidas = await resolverPortadas(fotosPorGaleria);
 
-  // Manda lo que el fotógrafo eligió en el panel; si no eligió, se busca sola:
-  // vertical para las tarjetas, que son verticales.
+  // Las portadas van cambiando de foto mientras se mira la página. La que
+  // eligió el fotógrafo abre la rotación; las demás salen del mismo álbum.
   //
   // Las galerías que todavía no tienen álbum cargado no se muestran: una
   // tarjeta vacía hace ver la web a medio terminar. Vuelven solas en cuanto
@@ -29,21 +28,22 @@ export default async function Inicio() {
   const destacadas = tiposDeEvento
     .filter((t) => (fotosPorGaleria[t.slug] ?? []).length > 0)
     .map((t) => {
-      const elegida = elegidas.galerias[t.slug];
+      const fotos = fotosPorGaleria[t.slug] ?? [];
+      // El recuadro es vertical, así que se prefieren fotos verticales.
+      const verticales = fotos.filter((f) => !esApaisada(f));
       return {
         ...t,
-        foto: elegida?.foto ?? automaticaDeGaleria(fotosPorGaleria[t.slug] ?? []),
-        posicion: elegida ? aPosicionCss(elegida.encuadre) : undefined,
+        rotacion: armarRotacion(
+          verticales.length > 0 ? verticales : fotos,
+          elegidas.galerias[t.slug],
+        ),
       };
     });
 
-  // El fondo de la portada es ancho: sin elección se usa una apaisada, porque
-  // una vertical quedaría recortada por el medio.
-  const fotoPortada = elegidas.inicio?.foto ?? automaticaDelInicio(fotosPorGaleria);
-  const posicionPortada = elegidas.inicio ? aPosicionCss(elegidas.inicio.encuadre) : undefined;
-  const posicionPortadaMovil = elegidas.inicio?.encuadreMovil
-    ? aPosicionCss(elegidas.inicio.encuadreMovil)
-    : undefined;
+  // El fondo de la portada es ancho: se usan apaisadas, porque una vertical
+  // queda recortada por el medio.
+  const apaisadas = Object.values(fotosPorGaleria).flat().filter(esApaisada);
+  const rotacionPortada = armarRotacion(apaisadas, elegidas.inicio);
 
   return (
     <>
@@ -53,16 +53,13 @@ export default async function Inicio() {
         {/* ---------------------------------------------------------- portada */}
         <section className="relative flex min-h-[100svh] items-center justify-center overflow-hidden">
           <div className="absolute inset-0 -z-10">
-            {/* Cuando haya álbumes conectados, la portada usa la primera foto.
-                Sin fotos queda sólo el fondo, sin ícono de relleno. */}
-            <Marco
-              foto={fotoPortada}
-              conIcono={false}
+            {/* Sin álbumes conectados la lista viene vacía y queda sólo el
+                fondo negro, sin ícono de relleno. */}
+            <PortadaRotativa
+              fotos={rotacionPortada}
               medida="grande"
               sizes="100vw"
-              posicion={posicionPortada}
-              posicionMovil={posicionPortadaMovil}
-              prioridad
+              intervalo={7000}
             />
             {/* Dos capas: un velo parejo que asegura contraste con cualquier
                 foto, y el degradado que cierra contra el fondo de la página. */}
@@ -121,14 +118,19 @@ export default async function Inicio() {
           {/* Las columnas siguen a la cantidad de galerías: con tres fijas y
               solo dos cargadas quedaba un hueco al costado. */}
           <div className={`mt-14 grid gap-6 ${columnas(destacadas.length)}`}>
-            {destacadas.map((g) => (
+            {destacadas.map((g, indice) => (
               <Link
                 key={g.slug}
                 href={`/galerias/${g.slug}`}
                 className="group relative aspect-[3/4] overflow-hidden border border-dorado/15"
               >
                 <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
-                  <Marco foto={g.foto} etiqueta={g.nombre} posicion={g.posicion} />
+                  {/* El desfase evita que las tarjetas cambien todas juntas. */}
+                  <PortadaRotativa
+                    fotos={g.rotacion}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    retraso={indice * 1800}
+                  />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-6">
